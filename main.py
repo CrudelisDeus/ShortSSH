@@ -49,9 +49,9 @@ def require_ssh_config(
                 with open(self.path_ssh_config, "w") as f:
                     print("[+] Creating SSH config file...")
                     f.write(
-                        """-------------------
+                        """#-----------------#
 # ShortSSH Config #
--------------------
+#-----------------#
 """
                     )
                 os.chmod(self.path_ssh_config, 0o600)
@@ -143,7 +143,7 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
-
+    @require_ssh_config
     def open_editor(self) -> None:
         import os
         import shlex
