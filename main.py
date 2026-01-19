@@ -1,4 +1,23 @@
 import os
+from functools import wraps
+from typing import Any, Callable, Optional
+
+
+def require_ssh_config(
+    func: Callable[..., Any],
+) -> Callable[..., Optional[Any]]:
+    @wraps(func)
+    def wrapper(self: "ShortSSH", *args: Any, **kwargs: Any) -> Optional[Any]:
+        if os.path.exists(self.path_ssh_config):
+            os.system("cls" if os.name == "nt" else "clear")
+            print(self.logo())
+            print(f"[!] SSH config file not found: {self.path_ssh_config}")
+            print("[!] Please create SSH config file first or check the path")
+            input("\nPress Enter to continue...")
+            return None
+        return func(self, *args, **kwargs)
+
+    return wrapper
 
 
 class ShortSSH:
@@ -85,6 +104,7 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # Menu
     # ------------------------------------------------------------------------
+    @require_ssh_config
     def add_menu(self) -> None:
         os.system("cls" if os.name == "nt" else "clear")
         print(self.logo())
