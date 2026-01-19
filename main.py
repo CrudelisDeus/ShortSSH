@@ -1,6 +1,36 @@
 import os
+import sys
+from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, Optional
+
+# ------------------------------------------------------------------------
+# Terminal control sequences
+# ------------------------------------------------------------------------
+
+ALT_ENTER = "\x1b[?1049h"
+ALT_EXIT = "\x1b[?1049l"
+HIDE_CUR = "\x1b[?25l"
+SHOW_CUR = "\x1b[?25h"
+CLEAR = "\x1b[2J\x1b[H"
+
+
+def _twrite(s: str) -> None:
+    sys.stdout.write(s)
+    sys.stdout.flush()
+
+
+def clear_screen() -> None:
+    _twrite(CLEAR)
+
+
+@contextmanager
+def isolated_tui():
+    try:
+        _twrite(ALT_ENTER + CLEAR)
+        yield
+    finally:
+        _twrite(SHOW_CUR + ALT_EXIT)
 
 
 def require_ssh_config(
@@ -9,7 +39,7 @@ def require_ssh_config(
     @wraps(func)
     def wrapper(self: "ShortSSH", *args: Any, **kwargs: Any) -> Optional[Any]:
         if not os.path.exists(self.path_ssh_config):
-            os.system("cls" if os.name == "nt" else "clear")
+            clear_screen()
             print(self.logo())
             print(f"[!] SSH config file not found: {self.path_ssh_config}")
             print("\n[!] Create SSH config file? (y/n)")
@@ -89,19 +119,41 @@ class ShortSSH:
             return False
         return True
 
+    def check_host_exists(self, short_name: str) -> bool:
+        short_name = short_name.strip()
+        if not os.path.isfile(self.path_ssh_config):
+            return False
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+                if s.lower().startswith("host "):
+                    parts = s.split()
+                    if short_name in parts[1:]:
+                        return True
+        return False
+
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+
     def open_editor(self) -> None:
         import os
         import shlex
         import shutil
         import subprocess
+        import sys
 
-        path = os.path.expanduser("~/.ssh/config")
+        path = self.path_ssh_config
 
         editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
-
         if not editor:
             for candidate in ("nvim", "vim", "vi", "nano"):
                 if shutil.which(candidate):
@@ -110,15 +162,19 @@ class ShortSSH:
 
         if not editor:
             print("[!] No editor available (set $EDITOR or $VISUAL)")
+            input("\nPress Enter...")
             return
 
         cmd = shlex.split(editor)
 
-        if not shutil.which(cmd[0]):
-            print(f"[!] Editor not found: {cmd[0]}")
-            return
+        _twrite(SHOW_CUR + ALT_EXIT)
+        sys.stdout.flush()
 
-        subprocess.call(cmd + [path])
+        try:
+            subprocess.call(cmd + [path])
+        finally:
+            _twrite(ALT_ENTER + CLEAR)
+            sys.stdout.flush()
 
     def set_host(self, item: str) -> bool:
         if item == "ip":
@@ -145,17 +201,17 @@ class ShortSSH:
                 user = getpass.getuser()
             self.user_host = user
         elif item == "short_name":
-            short_name = input("Enter Short Name: ")
-            if self.check_host_short_name(short_name):
-                self.short_name_host = short_name
-            else:
+            short_name = input("Enter Short Name: ").strip()
+
+            if not self.check_host_short_name(short_name):
                 print("\n[!] Invalid Short Name format\n")
                 return False
-            with open(self.path_ssh_config, "r") as f:
-                config_content = f.read()
-                if f"Host {short_name}" in config_content:
-                    print("\n[!] Short Name already exists in SSH config\n")
-                    return False
+
+            if self.check_host_exists(short_name):
+                print("\n[!] Short Name already exists in SSH config\n")
+                return False
+            self.short_name_host = short_name
+
         return True
 
     # ------------------------------------------------------------------------
@@ -163,7 +219,7 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     @require_ssh_config
     def add_menu(self) -> None:
-        os.system("cls" if os.name == "nt" else "clear")
+        clear_screen()
         print(self.logo())
 
         while not self.set_host("port"):
@@ -176,7 +232,7 @@ class ShortSSH:
             pass
 
         while True:
-            os.system("cls" if os.name == "nt" else "clear")
+            clear_screen()
             print(self.logo())
             print("[+] New Host Details:")
             print(f"    Port: {self.port_host}")
@@ -214,7 +270,7 @@ class ShortSSH:
         ]
 
         while True:
-            os.system("cls" if os.name == "nt" else "clear")
+            clear_screen()
             print(self.logo())
             for item in menu:
                 print(item)
@@ -231,5 +287,6 @@ class ShortSSH:
 
 
 if __name__ == "__main__":
-    app = ShortSSH()
-    app.main()
+    with isolated_tui():
+        app = ShortSSH()
+        app.main()
