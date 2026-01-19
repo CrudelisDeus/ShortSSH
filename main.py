@@ -1,3 +1,6 @@
+import os
+
+
 class ShortSSH:
     def __init__(self):
         # General
@@ -11,6 +14,8 @@ class ShortSSH:
         self.ip_host = None
         self.short_name_host = None
 
+        self.path_ssh_config = os.path.expanduser("~/.ssh/config")
+
     def logo(self) -> str:
         logo = rf"""
   / _ \
@@ -21,14 +26,86 @@ class ShortSSH:
         return logo
 
     # ------------------------------------------------------------------------
+    # check
+    # ------------------------------------------------------------------------
+
+    def check_host_ip(self, ip: str) -> bool:
+        ip = ip.strip()
+        parts = ip.split(".")
+        if len(parts) != 4:
+            return False
+        for part in parts:
+            if not part.isdigit():
+                return False
+            num = int(part)
+            if num < 0 or num > 255:
+                return False
+        return True
+
+    def check_host_port(self, port: str) -> bool:
+        port = port.strip()
+        if not port.isdigit():
+            return False
+        num = int(port)
+        if num < 1 or num > 65535:
+            return False
+        return True
+
+    # ------------------------------------------------------------------------
+    # functionality
+    # ------------------------------------------------------------------------
+    def set_host(self, item: str) -> bool:
+        if item == "ip":
+            ip = input("Enter IP Address: ")
+            if self.check_host_ip(ip):
+                self.ip_host = ip
+            else:
+                print("[!] Invalid IP address format")
+                return False
+        elif item == "port":
+            port = input("Enter Port: ")
+            if not port:
+                port = "22"
+            if self.check_host_port(port):
+                self.port_host = port
+            else:
+                print("[!] Invalid Port format")
+                return False
+        elif item == "user":
+            user = input("Enter Username: ")
+            if not user:
+                import getpass
+
+                user = getpass.getuser()
+            self.user_host = user
+        elif item == "short_name":
+            self.short_name_host = input("Enter Short Name: ")
+        return True
+
+    # ------------------------------------------------------------------------
     # Menu
     # ------------------------------------------------------------------------
+    def add_menu(self) -> None:
+        os.system("cls" if os.name == "nt" else "clear")
+        print(self.logo())
+
+        self.set_host("port")
+        self.set_host("user")
+        self.set_host("ip")
+        self.set_host("short_name")
+
+        # print(self.ip_host)
+        # print(self.port_host)
+        # print(self.user_host)
+        # print(self.short_name_host)
+
+        # input("\nPress Enter to continue...")
+
     def main_menu(self) -> None:
-        import os
 
         menu = [
-            "1. Find host",
-            "2. Add new host",
+            "1. Add new host",
+            "2. Find host",
             "3. Open config in editor",
             "4. View config ssh",
             "q. Quit",
@@ -42,6 +119,8 @@ class ShortSSH:
             ch = input("\n[>]: ").strip().lower()
             if ch == "q":
                 break
+            elif ch == "1":
+                self.add_menu()
 
     def main(self) -> None:
         self.main_menu()
