@@ -8,12 +8,23 @@ def require_ssh_config(
 ) -> Callable[..., Optional[Any]]:
     @wraps(func)
     def wrapper(self: "ShortSSH", *args: Any, **kwargs: Any) -> Optional[Any]:
-        if os.path.exists(self.path_ssh_config):
+        if not os.path.exists(self.path_ssh_config):
             os.system("cls" if os.name == "nt" else "clear")
             print(self.logo())
             print(f"[!] SSH config file not found: {self.path_ssh_config}")
-            print("[!] Please create SSH config file first or check the path")
-            input("\nPress Enter to continue...")
+            print("\n[!] Create SSH config file? (y/n)")
+            ch = input("\n" "[>]: ").strip().lower()
+
+            if ch == "y":
+                with open(self.path_ssh_config, "w") as f:
+                    print("[+] Creating SSH config file...")
+                    f.write(
+                        """-------------------
+# ShortSSH Config #
+-------------------
+"""
+                    )
+                os.chmod(self.path_ssh_config, 0o600)
             return None
         return func(self, *args, **kwargs)
 
