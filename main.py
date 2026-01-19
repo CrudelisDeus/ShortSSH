@@ -92,6 +92,34 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def open_editor(self) -> None:
+        import os
+        import shlex
+        import shutil
+        import subprocess
+
+        path = os.path.expanduser("~/.ssh/config")
+
+        editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
+
+        if not editor:
+            for candidate in ("nvim", "vim", "vi", "nano"):
+                if shutil.which(candidate):
+                    editor = candidate
+                    break
+
+        if not editor:
+            print("[!] No editor available (set $EDITOR or $VISUAL)")
+            return
+
+        cmd = shlex.split(editor)
+
+        if not shutil.which(cmd[0]):
+            print(f"[!] Editor not found: {cmd[0]}")
+            return
+
+        subprocess.call(cmd + [path])
+
     def set_host(self, item: str) -> bool:
         if item == "ip":
             ip = input("Enter IP Address: ")
@@ -178,9 +206,10 @@ class ShortSSH:
 
         menu = [
             "1. Add new host",
-            "2. Find host",
-            "3. Open config in editor",
-            "4. View config ssh",
+            "2. Open config in editor",
+            # "2. Find host",
+            # "3. Open config in editor",
+            # "4. View config ssh",
             "q. Quit",
         ]
 
@@ -194,6 +223,8 @@ class ShortSSH:
                 break
             elif ch == "1":
                 self.add_menu()
+            elif ch == "2":
+                self.open_editor()
 
     def main(self) -> None:
         self.main_menu()
