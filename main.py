@@ -20,14 +20,30 @@ class ShortSSH:
 """
         return logo
 
+    # ------------------------------------------------------------------------
+    # Menu
+    # ------------------------------------------------------------------------
     def main_menu(self) -> None:
         import os
+
+        menu = [
+            "1. Find host",
+            "2. Add new host",
+            "3. Open config in editor",
+            "4. View config ssh",
+            "q. Quit",
+        ]
 
         while True:
             os.system("cls" if os.name == "nt" else "clear")
             print(self.logo())
+            for item in menu:
+                print(item)
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "q":
+                break
 
-    def main(self):
+    def main(self) -> None:
         self.main_menu()
 
 
