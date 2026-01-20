@@ -73,6 +73,7 @@ class ShortSSH:
         self.user_host = None
         self.ip_host = None
         self.short_name_host = None
+        self.key_host = None
 
         self.path_ssh_config = os.path.expanduser("~/.ssh/config")
 
@@ -288,6 +289,16 @@ class ShortSSH:
                 print("\n[!] Short Name already exists in SSH config\n")
                 return False
             self.short_name_host = short_name
+        elif item == "key":
+            key = input("Enter Path to Key File (or leave empty): ").strip()
+            if key:
+                key = os.path.expanduser(key)
+                if not os.path.isfile(key):
+                    print("\n[!] Key file does not exist\n")
+                    return False
+                self.key_host = key
+            else:
+                self.key_host = None
 
         return True
 
@@ -334,6 +345,9 @@ class ShortSSH:
         while not self.set_host("short_name"):
             pass
 
+        if not self.set_host("key"):
+            input("Press Enter...")
+
         while True:
             clear_screen()
             print(self.logo())
@@ -342,6 +356,9 @@ class ShortSSH:
             print(f"    Username: {self.user_host}")
             print(f"    IP Address: {self.ip_host}")
             print(f"    Short Name: {self.short_name_host}")
+
+            if self.key_host:
+                print(f"    Key File: {self.key_host}")
 
             print("\nAre you sure you want to add this host? (y/n)")
 
@@ -355,6 +372,8 @@ class ShortSSH:
         Port {self.port_host}
 """
                     )
+                    if self.key_host:
+                        f.write(f"        IdentityFile {self.key_host}\n")
                 break
             elif ch == "n":
                 return
