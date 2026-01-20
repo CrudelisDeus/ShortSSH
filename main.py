@@ -182,7 +182,6 @@ class ShortSSH:
                     blocks.append(block)
                 return
 
-            # для ip/port/user ищем по конкретным строкам внутри блока
             for raw in block_l.splitlines():
                 s = raw.strip()
                 if kind == "ip" and s.startswith("hostname ") and query_l in s:
