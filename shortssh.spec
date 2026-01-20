@@ -1,5 +1,3 @@
-from PyInstaller.utils.win32.icon import IconFile
-
 block_cipher = None
 
 a = Analysis(
@@ -29,5 +27,5 @@ exe = EXE(
     strip=False,
     upx=True,
     console=True,
-    icon=IconFile("favicon.ico"),
+    icon="favicon.ico",
 )
