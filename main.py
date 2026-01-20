@@ -79,6 +79,8 @@ class ShortSSH:
         self.key_host = None
 
         self.path_ssh_config = os.path.expanduser("~/.ssh/config")
+        self.program_dir = os.path.dirname(os.path.abspath(__file__))
+        self.backup_dir = os.path.join(self.program_dir, "backups")
 
     def logo(self) -> str:
         logo = rf"""
@@ -92,6 +94,19 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # check
     # ------------------------------------------------------------------------
+    def get_backup_list(self) -> list[str]:
+        if not os.path.isdir(self.backup_dir):
+            return []
+
+        return sorted(
+            f
+            for f in os.listdir(self.backup_dir)
+            if os.path.isfile(os.path.join(self.backup_dir, f))
+        )
+
+    def check_backup_exists(self, name: str) -> bool:
+        path = os.path.join(self.backup_dir, name)
+        return os.path.isfile(path)
 
     def check_host_ip(self, ip: str) -> bool:
         ip = ip.strip()
@@ -147,6 +162,42 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    @require_ssh_config
+    def restore_ssh_config(self, name: str) -> None:
+        name = name.strip()
+        if not name:
+            print("\n[!] Empty backup name")
+            return
+        src = os.path.join(self.backup_dir, name)
+        if not os.path.isfile(src):
+            print("\n[!] Backup not found")
+            return
+
+        with open(src, "r", encoding="utf-8", errors="replace") as fsrc, open(
+            self.path_ssh_config, "w", encoding="utf-8"
+        ) as fdst:
+            fdst.write(fsrc.read())
+
+        os.chmod(self.path_ssh_config, 0o600)
+        print(f"\n[+] Restored: {name}")
+
+    @require_ssh_config
+    def backup_ssh_config(self, name: str) -> None:
+        os.makedirs(self.backup_dir, exist_ok=True)
+
+        dst = os.path.join(self.backup_dir, name)
+
+        if self.check_backup_exists(name):
+            print("\n[!] Backup with this name already exists")
+            return
+
+        with open(
+            self.path_ssh_config, "r", encoding="utf-8", errors="replace"
+        ) as src, open(dst, "w", encoding="utf-8") as out:
+            out.write(src.read())
+
+        print(f"\n[+] Backup created: {name}")
+
     @require_ssh_config
     def find_host(self, kind: str) -> None:
         kind = kind.strip().lower()
@@ -383,12 +434,75 @@ class ShortSSH:
             else:
                 print("\n[!] Please enter y or n.")
 
+    @require_ssh_config
+    def menu_backup_ssh(self) -> None:
+        clear_screen()
+        print(self.logo())
+
+        while True:
+            clear_screen()
+            print(self.logo())
+            print("Enter backup name (or 'q' to Back): ")
+            ch = input("\n[>]: ").strip()
+            if ch.lower() == "q":
+                break
+            else:
+                os.makedirs(self.backup_dir, exist_ok=True)
+                self.backup_ssh_config(ch)
+                input("\nPress Enter...")
+                break
+
+    @require_ssh_config
+    def menu_restore_ssh(self) -> None:
+        while True:
+            clear_screen()
+            print(self.logo())
+
+            backups = self.get_backup_list()
+            if not backups:
+                print("[!] No backups")
+            else:
+                print("[+] Backups:\n")
+                for b in backups:
+                    print(f" - {b}")
+
+            print("\nEnter backup name to restore (or 'q' to Back): ")
+            ch = input("\n[>]: ").strip()
+            if ch.lower() == "q":
+                break
+            else:
+                self.restore_ssh_config(ch)
+                input("\nPress Enter...")
+                break
+
+    def backup_restore_menu(self) -> None:
+
+        menu = [
+            "1. Backup SSH config",
+            "2. Restore SSH config",
+            "q. Back",
+        ]
+
+        while True:
+            clear_screen()
+            print(self.logo())
+            for item in menu:
+                print(item)
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "q":
+                break
+            elif ch == "1":
+                self.menu_backup_ssh()
+            elif ch == "2":
+                self.menu_restore_ssh()
+
     def main_menu(self) -> None:
 
         menu = [
             "1. Add new host",
             "2. Open config in editor",
             "3. Find host",
+            "4. Backup/Restore SSH config",
             "q. Quit",
         ]
 
@@ -406,6 +520,8 @@ class ShortSSH:
                 self.open_editor()
             elif ch == "3":
                 self.find_menu()
+            elif ch == "4":
+                self.backup_restore_menu()
 
     def main(self) -> None:
         self.main_menu()
