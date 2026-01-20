@@ -278,27 +278,31 @@ class ShortSSH:
         import subprocess
 
         path = self.path_ssh_config
+        is_windows = os.name == "nt"
 
         editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
-        if not editor:
-            for candidate in ("nvim", "vim", "vi", "nano"):
-                if shutil.which(candidate):
-                    editor = candidate
-                    break
 
         if not editor:
-            print("[!] No editor available (set $EDITOR or $VISUAL)")
+            if is_windows:
+                editor = "notepad"
+            else:
+                for candidate in ("nvim", "vim", "vi", "nano"):
+                    if shutil.which(candidate):
+                        editor = candidate
+                        break
+
+        if not editor:
+            print("\n[!] No editor available (set $EDITOR or $VISUAL)")
             input("\nPress Enter...")
             return
 
-        cmd = shlex.split(editor)
+        if is_windows and editor.lower() == "notepad":
+            cmd = [editor, path]
+        else:
+            cmd = shlex.split(editor) + [path]
 
         sys.stdout.flush()
-
-        try:
-            subprocess.call(cmd + [path])
-        finally:
-            pass
+        subprocess.call(cmd)
 
     def set_host(self, item: str) -> bool:
         if item == "ip":
