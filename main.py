@@ -1,36 +1,7 @@
 import os
 import sys
-from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, Optional
-
-# ------------------------------------------------------------------------
-# Terminal control sequences
-# ------------------------------------------------------------------------
-
-ALT_ENTER = "\x1b[?1049h"
-ALT_EXIT = "\x1b[?1049l"
-HIDE_CUR = "\x1b[?25l"
-SHOW_CUR = "\x1b[?25h"
-CLEAR = "\x1b[2J\x1b[H"
-
-
-def _twrite(s: str) -> None:
-    sys.stdout.write(s)
-    sys.stdout.flush()
-
-
-def clear_screen() -> None:
-    _twrite(CLEAR)
-
-
-@contextmanager
-def isolated_tui():
-    try:
-        _twrite(ALT_ENTER + CLEAR)
-        yield
-    finally:
-        _twrite(SHOW_CUR + ALT_EXIT)
 
 
 def require_ssh_config(
@@ -39,7 +10,7 @@ def require_ssh_config(
     @wraps(func)
     def wrapper(self: "ShortSSH", *args: Any, **kwargs: Any) -> Optional[Any]:
         if not os.path.exists(self.path_ssh_config):
-            clear_screen()
+            os.system("clear")
             print(self.logo())
             print(f"[!] SSH config file not found: {self.path_ssh_config}")
             print("\n[!] Create SSH config file? (y/n)")
@@ -204,7 +175,7 @@ class ShortSSH:
         if kind not in ("ip", "hostname", "port", "user"):
             return
 
-        clear_screen()
+        os.system("clear")
         print(self.logo())
 
         if kind == "ip":
@@ -263,7 +234,7 @@ class ShortSSH:
                     buf.append(line)
         push()
 
-        clear_screen()
+        os.system("clear")
         print(self.logo())
 
         if not blocks:
@@ -281,7 +252,6 @@ class ShortSSH:
         import shlex
         import shutil
         import subprocess
-        import sys
 
         path = self.path_ssh_config
 
@@ -299,14 +269,12 @@ class ShortSSH:
 
         cmd = shlex.split(editor)
 
-        _twrite(SHOW_CUR + ALT_EXIT)
         sys.stdout.flush()
 
         try:
             subprocess.call(cmd + [path])
         finally:
-            _twrite(ALT_ENTER + CLEAR)
-            sys.stdout.flush()
+            pass
 
     def set_host(self, item: str) -> bool:
         if item == "ip":
@@ -369,7 +337,7 @@ class ShortSSH:
             "q. Back",
         ]
         while True:
-            clear_screen()
+            os.system("clear")
             print(self.logo())
             for item in menu:
                 print(item)
@@ -387,7 +355,7 @@ class ShortSSH:
 
     @require_ssh_config
     def add_menu(self) -> None:
-        clear_screen()
+        os.system("clear")
         print(self.logo())
 
         while not self.set_host("port"):
@@ -403,7 +371,7 @@ class ShortSSH:
             input("Press Enter...")
 
         while True:
-            clear_screen()
+            os.system("clear")
             print(self.logo())
             print("[+] New Host Details:")
             print(f"    Port: {self.port_host}")
@@ -436,11 +404,11 @@ class ShortSSH:
 
     @require_ssh_config
     def menu_backup_ssh(self) -> None:
-        clear_screen()
+        os.system("clear")
         print(self.logo())
 
         while True:
-            clear_screen()
+            os.system("clear")
             print(self.logo())
             print("Enter backup name (or 'q' to Back): ")
             ch = input("\n[>]: ").strip()
@@ -455,7 +423,7 @@ class ShortSSH:
     @require_ssh_config
     def menu_restore_ssh(self) -> None:
         while True:
-            clear_screen()
+            os.system("clear")
             print(self.logo())
 
             backups = self.get_backup_list()
@@ -484,7 +452,7 @@ class ShortSSH:
         ]
 
         while True:
-            clear_screen()
+            os.system("clear")
             print(self.logo())
             for item in menu:
                 print(item)
@@ -507,7 +475,7 @@ class ShortSSH:
         ]
 
         while True:
-            clear_screen()
+            os.system("clear")
             print(self.logo())
             for item in menu:
                 print(item)
@@ -525,9 +493,9 @@ class ShortSSH:
 
     def main(self) -> None:
         self.main_menu()
+        os.system("clear")
 
 
 if __name__ == "__main__":
-    with isolated_tui():
-        app = ShortSSH()
-        app.main()
+    app = ShortSSH()
+    app.main()
