@@ -133,6 +133,19 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def delete_ssh_backup(self, name: str) -> None:
+        name = name.strip()
+        if not name:
+            print("\n[!] Empty backup name")
+            return
+        src = os.path.join(self.backup_dir, name)
+        if not os.path.isfile(src):
+            print("\n[!] Backup not found")
+            return
+
+        os.remove(src)
+        print(f"\n[+] Deleted: {name}")
+
     @require_ssh_config
     def restore_ssh_config(self, name: str) -> None:
         name = name.strip()
@@ -403,6 +416,29 @@ class ShortSSH:
                 print("\n[!] Please enter y or n.")
 
     @require_ssh_config
+    def menu_delete_backup(self) -> None:
+        while True:
+            os.system("clear")
+            print(self.logo())
+
+            backups = self.get_backup_list()
+            if not backups:
+                print("[!] No backups")
+            else:
+                print("[+] Backups:\n")
+                for b in backups:
+                    print(f" - {b}")
+
+            print("\nEnter backup name to delete (or 'q' to Back): ")
+            ch = input("\n[>]: ").strip()
+            if ch.lower() == "q":
+                break
+            else:
+                self.delete_ssh_backup(ch)
+                input("\nPress Enter...")
+                break
+
+    @require_ssh_config
     def menu_backup_ssh(self) -> None:
         os.system("clear")
         print(self.logo())
@@ -448,6 +484,7 @@ class ShortSSH:
         menu = [
             "1. Backup SSH config",
             "2. Restore SSH config",
+            "3. Delete SSH backup",
             "q. Back",
         ]
 
@@ -463,6 +500,8 @@ class ShortSSH:
                 self.menu_backup_ssh()
             elif ch == "2":
                 self.menu_restore_ssh()
+            elif ch == "3":
+                self.menu_delete_backup()
 
     def main_menu(self) -> None:
 
