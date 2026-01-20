@@ -46,6 +46,9 @@ def require_ssh_config(
             ch = input("\n" "[>]: ").strip().lower()
 
             if ch == "y":
+                ssh_dir = os.path.dirname(self.path_ssh_config)
+                os.makedirs(ssh_dir, exist_ok=True)
+                os.chmod(ssh_dir, 0o700)
                 with open(self.path_ssh_config, "w") as f:
                     print("[+] Creating SSH config file...")
                     f.write(
