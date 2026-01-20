@@ -4,13 +4,17 @@ from functools import wraps
 from typing import Any, Callable, Optional
 
 
+def clear_console() -> None:
+    os.system("cls" if os.name == "nt" else "clear")
+
+
 def require_ssh_config(
     func: Callable[..., Any],
 ) -> Callable[..., Optional[Any]]:
     @wraps(func)
     def wrapper(self: "ShortSSH", *args: Any, **kwargs: Any) -> Optional[Any]:
         if not os.path.exists(self.path_ssh_config):
-            os.system("clear")
+            clear_console()
             print(self.logo())
             print(f"[!] SSH config file not found: {self.path_ssh_config}")
             print("\n[!] Create SSH config file? (y/n)")
@@ -19,7 +23,8 @@ def require_ssh_config(
             if ch == "y":
                 ssh_dir = os.path.dirname(self.path_ssh_config)
                 os.makedirs(ssh_dir, exist_ok=True)
-                os.chmod(ssh_dir, 0o700)
+                if not self.is_windows():
+                    os.chmod(ssh_dir, 0o700)
                 with open(self.path_ssh_config, "w") as f:
                     print("[+] Creating SSH config file...")
                     f.write(
@@ -28,7 +33,8 @@ def require_ssh_config(
 #-----------------#
 """
                     )
-                os.chmod(self.path_ssh_config, 0o600)
+                if not self.is_windows():
+                    os.chmod(self.path_ssh_config, 0o600)
             return None
         return func(self, *args, **kwargs)
 
@@ -74,6 +80,9 @@ class ShortSSH:
             for f in os.listdir(self.backup_dir)
             if os.path.isfile(os.path.join(self.backup_dir, f))
         )
+
+    def is_windows(self) -> bool:
+        return os.name == "nt"
 
     def check_backup_exists(self, name: str) -> bool:
         path = os.path.join(self.backup_dir, name)
@@ -162,7 +171,9 @@ class ShortSSH:
         ) as fdst:
             fdst.write(fsrc.read())
 
-        os.chmod(self.path_ssh_config, 0o600)
+        if not self.is_windows():
+            os.chmod(self.path_ssh_config, 0o600)
+
         print(f"\n[+] Restored: {name}")
 
     @require_ssh_config
@@ -188,7 +199,7 @@ class ShortSSH:
         if kind not in ("ip", "hostname", "port", "user"):
             return
 
-        os.system("clear")
+        clear_console()
         print(self.logo())
 
         if kind == "ip":
@@ -247,7 +258,7 @@ class ShortSSH:
                     buf.append(line)
         push()
 
-        os.system("clear")
+        clear_console()
         print(self.logo())
 
         if not blocks:
@@ -350,7 +361,7 @@ class ShortSSH:
             "q. Back",
         ]
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
             for item in menu:
                 print(item)
@@ -368,7 +379,7 @@ class ShortSSH:
 
     @require_ssh_config
     def add_menu(self) -> None:
-        os.system("clear")
+        clear_console()
         print(self.logo())
 
         while not self.set_host("port"):
@@ -384,7 +395,7 @@ class ShortSSH:
             input("Press Enter...")
 
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
             print("[+] New Host Details:")
             print(f"    Port: {self.port_host}")
@@ -418,7 +429,7 @@ class ShortSSH:
     @require_ssh_config
     def menu_delete_backup(self) -> None:
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
 
             backups = self.get_backup_list()
@@ -440,11 +451,11 @@ class ShortSSH:
 
     @require_ssh_config
     def menu_backup_ssh(self) -> None:
-        os.system("clear")
+        clear_console()
         print(self.logo())
 
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
             print("Enter backup name (or 'q' to Back): ")
             ch = input("\n[>]: ").strip()
@@ -459,7 +470,7 @@ class ShortSSH:
     @require_ssh_config
     def menu_restore_ssh(self) -> None:
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
 
             backups = self.get_backup_list()
@@ -489,7 +500,7 @@ class ShortSSH:
         ]
 
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
             for item in menu:
                 print(item)
@@ -514,7 +525,7 @@ class ShortSSH:
         ]
 
         while True:
-            os.system("clear")
+            clear_console()
             print(self.logo())
             for item in menu:
                 print(item)
@@ -532,7 +543,7 @@ class ShortSSH:
 
     def main(self) -> None:
         self.main_menu()
-        os.system("clear")
+        clear_console()
 
 
 if __name__ == "__main__":
