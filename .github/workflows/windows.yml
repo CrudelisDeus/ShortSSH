@@ -1,7 +1,9 @@
-name: Build Windows EXE (tag)
+name: Build Windows EXE
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -29,7 +31,17 @@ jobs:
         run: |
           pyinstaller --onefile --name shortssh main.py
 
-      - name: Upload to Cloudflare R2 (overwrite)
+      - name: Decide target filename
+        id: target
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "name=shortssh.exe" >> $GITHUB_OUTPUT
+          else
+            echo "name=dev-shortssh.exe" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload to Cloudflare R2
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ vars.R2_ACCESS_KEY_ID }}
@@ -40,12 +52,13 @@ jobs:
           R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
         run: |
           aws s3 cp dist/shortssh.exe \
-            s3://${R2_BUCKET}/shortssh.exe \
+            s3://${R2_BUCKET}/${{ steps.target.outputs.name }} \
             --endpoint-url "${R2_ENDPOINT}" \
-            --content-type application/octet-stream
+            --content-type application/octet-stream \
+            --cache-control "no-cache, no-store, must-revalidate"
 
-      - name: Upload artifact (for GitHub)
+      - name: Upload artifact (GitHub)
         uses: actions/upload-artifact@v4
         with:
-          name: shortssh-${{ github.ref_name }}-windows
+          name: ${{ steps.target.outputs.name }}
           path: dist/shortssh.exe
