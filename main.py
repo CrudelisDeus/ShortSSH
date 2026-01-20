@@ -144,6 +144,84 @@ class ShortSSH:
     # functionality
     # ------------------------------------------------------------------------
     @require_ssh_config
+    def find_host(self, kind: str) -> None:
+        kind = kind.strip().lower()
+        if kind not in ("ip", "hostname", "port", "user"):
+            return
+
+        clear_screen()
+        print(self.logo())
+
+        if kind == "ip":
+            prompt = "Enter IP (or part): "
+        elif kind == "hostname":
+            prompt = "Enter HostName (or part): "
+        elif kind == "port":
+            prompt = "Enter Port (or part): "
+        else:
+            prompt = "Enter Username (or part): "
+
+        query = input(prompt).strip()
+        if not query:
+            return
+
+        query_l = query.lower()
+        blocks: list[str] = []
+        buf: list[str] = []
+
+        def push() -> None:
+            if not buf:
+                return
+
+            block = "".join(buf)
+            block_l = block.lower()
+
+            if kind == "hostname":
+                first = block_l.splitlines()[0].strip()
+                if first.startswith("host ") and query_l in first:
+                    blocks.append(block)
+                return
+
+            # для ip/port/user ищем по конкретным строкам внутри блока
+            for raw in block_l.splitlines():
+                s = raw.strip()
+                if kind == "ip" and s.startswith("hostname ") and query_l in s:
+                    blocks.append(block)
+                    return
+                if kind == "port" and s.startswith("port ") and query_l in s:
+                    blocks.append(block)
+                    return
+                if kind == "user" and s.startswith("user ") and query_l in s:
+                    blocks.append(block)
+                    return
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            for line in f:
+                if line.strip().lower().startswith("host "):
+                    push()
+                    buf = [line]
+                elif buf:
+                    buf.append(line)
+        push()
+
+        clear_screen()
+        print(self.logo())
+
+        if not blocks:
+            print("[!] Not found")
+            input("\nPress Enter...")
+            return
+
+        print(f"[+] Found: {len(blocks)}\n")
+        print("\n".join(b.rstrip() for b in blocks))
+        input("\nPress Enter...")
+
+    @require_ssh_config
     def open_editor(self) -> None:
         import os
         import shlex
@@ -218,6 +296,32 @@ class ShortSSH:
     # Menu
     # ------------------------------------------------------------------------
     @require_ssh_config
+    def find_menu(self) -> None:
+        menu = [
+            "1. Find by IP",
+            "2. Find by host name",
+            "3. Find by port name",
+            "4. Find by user name",
+            "q. Back",
+        ]
+        while True:
+            clear_screen()
+            print(self.logo())
+            for item in menu:
+                print(item)
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "q":
+                break
+            elif ch == "1":
+                self.find_host("ip")
+            elif ch == "2":
+                self.find_host("hostname")
+            elif ch == "3":
+                self.find_host("port")
+            elif ch == "4":
+                self.find_host("user")
+
+    @require_ssh_config
     def add_menu(self) -> None:
         clear_screen()
         print(self.logo())
@@ -263,9 +367,7 @@ class ShortSSH:
         menu = [
             "1. Add new host",
             "2. Open config in editor",
-            # "2. Find host",
-            # "3. Open config in editor",
-            # "4. View config ssh",
+            "3. Find host",
             "q. Quit",
         ]
 
@@ -281,6 +383,8 @@ class ShortSSH:
                 self.add_menu()
             elif ch == "2":
                 self.open_editor()
+            elif ch == "3":
+                self.find_menu()
 
     def main(self) -> None:
         self.main_menu()
