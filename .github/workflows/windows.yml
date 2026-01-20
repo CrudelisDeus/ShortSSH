@@ -26,10 +26,16 @@ jobs:
           if (Test-Path requirements.txt) { pip install -r requirements.txt }
           pip install pyinstaller awscli
 
+      - name: Check icon file
+        shell: pwsh
+        run: |
+          Get-Item .\favicon.ico | Format-List Name,Length
+
       - name: Build exe
         shell: pwsh
         run: |
-          pyinstaller --onefile --name shortssh --icon favicon.ico main.py
+          Remove-Item -Recurse -Force build,dist,shortssh.spec -ErrorAction SilentlyContinue
+          pyinstaller --noconfirm --clean --onefile --name shortssh --icon favicon.ico main.py
 
       - name: Decide target filename
         id: target
