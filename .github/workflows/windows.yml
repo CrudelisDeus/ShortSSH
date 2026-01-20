@@ -29,7 +29,7 @@ jobs:
       - name: Build exe
         shell: pwsh
         run: |
-          pyinstaller --onefile --name shortssh main.py
+          pyinstaller --onefile --name shortssh --icon favicon.ico main.py
 
       - name: Decide target filename
         id: target
