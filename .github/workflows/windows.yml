@@ -31,11 +31,17 @@ jobs:
         run: |
           Get-Item .\favicon.ico | Format-List Name,Length
 
-      - name: Build exe
+      - name: Build exe (no spec, with icon)
         shell: pwsh
         run: |
           Remove-Item -Recurse -Force build,dist -ErrorAction SilentlyContinue
-          pyinstaller --noconfirm --clean shortssh.spec
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --name shortssh `
+            --icon favicon.ico `
+            main.py
 
       - name: Decide target filename
         id: target
