@@ -8,6 +8,52 @@ def clear_console() -> None:
     os.system("cls" if os.name == "nt" else "clear")
 
 
+def require_ssh_private_key(
+    func: Callable[..., Any],
+) -> Callable[..., Optional[Any]]:
+    @wraps(func)
+    def wrapper(self: "ShortSSH", *args: Any, **kwargs: Any) -> Optional[Any]:
+        ssh_dir = os.path.dirname(self.path_ssh_config)
+
+        if not os.path.isdir(ssh_dir):
+            os.makedirs(ssh_dir, exist_ok=True)
+            if not self.is_windows():
+                os.chmod(ssh_dir, 0o700)
+
+        private_keys: list[str] = []
+
+        for name in os.listdir(ssh_dir):
+            path = os.path.join(ssh_dir, name)
+            if not os.path.isfile(path):
+                continue
+
+            low = name.lower()
+
+            if low == "config":
+                continue
+            if low.startswith("known_hosts"):
+                continue
+            if low.endswith(".pub"):
+                continue
+
+            private_keys.append(name)
+
+        if not private_keys:
+            clear_console()
+            print(self.logo())
+            print("[!] No SSH private keys found")
+            print("\n[!] Create SSH key? (y/n)")
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "y":
+                os.system("ssh-keygen -t ed25519")
+            input("\nPress Enter...")
+            return None
+
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 def require_ssh_config(
     func: Callable[..., Any],
 ) -> Callable[..., Optional[Any]]:
@@ -71,6 +117,31 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # check
     # ------------------------------------------------------------------------
+    def get_ssh_private_key_list(self) -> list[str]:
+        ssh_dir = os.path.dirname(self.path_ssh_config)
+
+        if not os.path.isdir(ssh_dir):
+            return []
+
+        private_keys: list[str] = []
+        for name in os.listdir(ssh_dir):
+            path = os.path.join(ssh_dir, name)
+            if not os.path.isfile(path):
+                continue
+
+            low = name.lower()
+
+            if low == "config":
+                continue
+            if low.startswith("known_hosts"):
+                continue
+            if low.endswith(".pub"):
+                continue
+
+            private_keys.append(name)
+
+        return sorted(private_keys)
+
     def get_backup_list(self) -> list[str]:
         if not os.path.isdir(self.backup_dir):
             return []
@@ -142,6 +213,43 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+
+    def copy_pubkey_to_host(self, private_key_name: str) -> None:
+        clear_console()
+        print(self.logo())
+
+        while not self.set_host("port"):
+            pass
+        while not self.set_host("user"):
+            pass
+        while not self.set_host("ip"):
+            pass
+
+        ssh_dir = os.path.dirname(self.path_ssh_config)
+        pubkey_path = os.path.join(ssh_dir, private_key_name + ".pub")
+
+        if not os.path.isfile(pubkey_path):
+            print(f"\n[!] Public key not found: {pubkey_path}")
+            input("\nPress Enter...")
+            return
+
+        if self.is_windows():
+            os.system(
+                f"ssh -p {self.port_host} "
+                f"{self.user_host}@{self.ip_host} "
+                f'"mkdir -p ~/.ssh && chmod 700 ~/.ssh && '
+                f'cat >> ~/.ssh/authorized_keys" '
+                f'< "{pubkey_path}"'
+            )
+        else:
+            os.system(
+                f'ssh-copy-id -i "{pubkey_path}" '
+                f"-p {self.port_host} "
+                f"{self.user_host}@{self.ip_host}"
+            )
+
+        input("\nPress Enter...")
+
     def delete_ssh_backup(self, name: str) -> None:
         name = name.strip()
         if not name:
@@ -518,6 +626,32 @@ class ShortSSH:
             elif ch == "3":
                 self.menu_delete_backup()
 
+    @require_ssh_config
+    @require_ssh_private_key
+    def copy_ssh_key_menu(self) -> None:
+
+        while True:
+            clear_console()
+            print(self.logo())
+            private_keys: list[str] = self.get_ssh_private_key_list()
+            print("[+] Available SSH Private Keys:\n")
+            for idx, key in enumerate(private_keys, start=1):
+                print(f" {idx}. {key}")
+            print("\nSelect private key number to copy (or 'q' to Back): ")
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "q":
+                break
+            if not ch.isdigit():
+                continue
+
+            num = int(ch)
+            if num < 1 or num > len(private_keys):
+                continue
+
+            selected_key = private_keys[num - 1]
+
+            self.copy_pubkey_to_host(selected_key)
+
     def main_menu(self) -> None:
 
         menu = [
@@ -525,6 +659,7 @@ class ShortSSH:
             "2. Open config in editor",
             "3. Find host",
             "4. Backup/Restore SSH config",
+            "5. Manual copy SSH key to host",
             "q. Quit",
         ]
 
@@ -544,6 +679,8 @@ class ShortSSH:
                 self.find_menu()
             elif ch == "4":
                 self.backup_restore_menu()
+            elif ch == "5":
+                self.copy_ssh_key_menu()
 
     def main(self) -> None:
         self.main_menu()
