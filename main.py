@@ -95,11 +95,11 @@ class ShortSSH:
         self.version_app = "0.0.0"
 
         # ShortSSH
-        self.port_host = None
-        self.user_host = None
-        self.ip_host = None
-        self.short_name_host = None
-        self.key_host = None
+        self.port_host: int | None = None
+        self.user_host: str | None = None
+        self.ip_host: str | None = None
+        self.short_name_host: str | None = None
+        self.key_host: str | None = None
 
         self.path_ssh_config = os.path.expanduser("~/.ssh/config")
         self.program_dir = os.path.dirname(os.path.abspath(__file__))
@@ -214,16 +214,25 @@ class ShortSSH:
     # functionality
     # ------------------------------------------------------------------------
 
-    def copy_pubkey_to_host(self, private_key_name: str) -> None:
+    def copy_pubkey_to_host(
+        self,
+        private_key_name: str,
+        port: Optional[int] = None,
+        user: Optional[str] = None,
+        ip: Optional[str] = None,
+    ) -> None:
         clear_console()
         print(self.logo())
 
-        while not self.set_host("port"):
-            pass
-        while not self.set_host("user"):
-            pass
-        while not self.set_host("ip"):
-            pass
+        if not port and not user and not ip:
+            while not self.set_host("port"):
+                pass
+            while not self.set_host("user"):
+                pass
+            while not self.set_host("ip"):
+                pass
+
+        print()
 
         ssh_dir = os.path.dirname(self.path_ssh_config)
         pubkey_path = os.path.join(ssh_dir, private_key_name + ".pub")
@@ -425,7 +434,7 @@ class ShortSSH:
             if not port:
                 port = "22"
             if self.check_host_port(port):
-                self.port_host = port
+                self.port_host = int(port)
             else:
                 print("\n[!] Invalid Port format\n")
                 return False
@@ -503,8 +512,37 @@ class ShortSSH:
         while not self.set_host("short_name"):
             pass
 
-        if not self.set_host("key"):
-            input("Press Enter...")
+        private_keys: list[str] = self.get_ssh_private_key_list()
+
+        if not private_keys:
+            input("\nPress Enter...")
+        else:
+            while True:
+                clear_console()
+                print(self.logo())
+                print(
+                    "[+] Select Private Key to associate with this host "
+                    "(or 'q' to skip):\n"
+                )
+                for idx, key in enumerate(private_keys, start=1):
+                    print(f" {idx}. {key}")
+                ch = input("\n[>]: ").strip().lower()
+                if ch == "q":
+                    break
+                if not ch.isdigit():
+                    continue
+
+                num = int(ch)
+                if num < 1 or num > len(private_keys):
+                    continue
+
+                selected_key = private_keys[num - 1]
+
+                self.key_host = os.path.join(
+                    os.path.dirname(self.path_ssh_config), selected_key
+                )
+
+                break
 
         while True:
             clear_console()
@@ -537,6 +575,30 @@ class ShortSSH:
                 return
             else:
                 print("\n[!] Please enter y or n.")
+                continue
+        while True:
+            if self.key_host:
+                clear_console()
+                print(self.logo())
+                print(
+                    """Do you want to copy the public key to this host? (y/n)
+    """.strip()
+                )
+
+                ch = input("\n[>]: ").strip().lower()
+
+                if ch == "n":
+                    return
+                elif ch == "y":
+                    self.copy_pubkey_to_host(
+                        os.path.basename(self.key_host),
+                        self.port_host,
+                        self.user_host,
+                        self.ip_host,
+                    )
+                    return
+                else:
+                    print("\n[!] Please enter y or n.")
 
     @require_ssh_config
     def menu_delete_backup(self) -> None:
