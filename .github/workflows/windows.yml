@@ -37,8 +37,8 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF_NAME}"
-            TAG="${TAG#v}"                 # v1.2.3 -> 1.2.3
-            VERSION=".${TAG}"              # .1.2.3
+            TAG="${TAG#v}"
+            VERSION=".${TAG}"
 
             echo "exe_name=shortssh.exe" >> $GITHUB_OUTPUT
             echo "py_name=shortssh.py" >> $GITHUB_OUTPUT
@@ -87,14 +87,12 @@ jobs:
           R2_BUCKET: ${{ vars.R2_BUCKET }}
           R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
         run: |
-          # EXE
           aws s3 cp dist/shortssh.exe \
             "s3://${R2_BUCKET}/${{ steps.target.outputs.exe_name }}" \
             --endpoint-url "${R2_ENDPOINT}" \
             --content-type application/octet-stream \
             --cache-control "no-cache, no-store, must-revalidate"
 
-          # PY
           aws s3 cp "dist/${{ steps.target.outputs.py_name }}" \
             "s3://${R2_BUCKET}/${{ steps.target.outputs.py_name }}" \
             --endpoint-url "${R2_ENDPOINT}" \
