@@ -92,7 +92,7 @@ class ShortSSH:
         # General
         self.name_app = "ShortSSH"
         self.github_url = "github.com/CrudelisDeus"
-        self.version_app = "0.0.0"
+        self.version_app = ".dev"
 
         # ShortSSH
         self.port_host: int | None = None
