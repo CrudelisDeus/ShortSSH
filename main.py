@@ -213,6 +213,45 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def change_host(self, selected: str) -> None:
+        clear_console()
+        print(selected)
+        print(self.logo())
+
+        while not self.set_host("port"):
+            pass
+        while not self.set_host("user"):
+            pass
+        while not self.set_host("ip"):
+            pass
+
+        host_name = selected.splitlines()[0].split(None, 1)[1]
+
+        new_block = (
+            f"Host {host_name}\n"
+            f"        HostName {self.ip_host}\n"
+            f"        User {self.user_host}\n"
+            f"        Port {self.port_host}\n"
+        )
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            text = f.read()
+
+        text = text.replace(selected, new_block, 1)
+
+        with open(self.path_ssh_config, "w", encoding="utf-8") as f:
+            f.write(text)
+
+        if not self.is_windows():
+            os.chmod(self.path_ssh_config, 0o600)
+
+        print("\n[+] Host updated")
+        input("\nPress Enter...")
 
     def copy_pubkey_to_host(
         self,
@@ -383,9 +422,76 @@ class ShortSSH:
             input("\nPress Enter...")
             return
 
-        print(f"[+] Found: {len(blocks)}\n")
-        print("\n".join(b.rstrip() for b in blocks))
-        input("\nPress Enter...")
+        while True:
+            clear_console()
+            print(self.logo())
+
+            print(f"[+] Found: {len(blocks)}\n")
+            lines = (
+                f"{idx}. {b.rstrip()}"
+                for idx, b in enumerate(
+                    blocks,
+                    start=1,
+                )
+            )
+            print("\n".join(lines))
+
+            print("\nSelect host number (or 'q' to Back): ")
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "q":
+                return
+            if not ch.isdigit():
+                continue
+
+            num = int(ch)
+            if num < 1 or num > len(blocks):
+                continue
+
+            break
+
+        selected = blocks[num - 1]
+
+        while True:
+            clear_console()
+            print(self.logo())
+
+            print("What do you want to do?")
+            print("  e - Edit host")
+            print("  d - Delete host")
+            print("  q - Cancel")
+
+            action = input("\n[>]: ").strip().lower()
+
+            if action == "q":
+                return
+
+            if action == "e":
+                self.change_host(selected)
+                return
+
+            if action == "d":
+                clear_console()
+                print(self.logo())
+
+                with open(
+                    self.path_ssh_config,
+                    "r",
+                    encoding="utf-8",
+                    errors="replace",
+                ) as f:
+                    text = f.read()
+
+                text = text.replace(selected, "", 1)
+
+                with open(self.path_ssh_config, "w", encoding="utf-8") as f:
+                    f.write(text)
+
+                if not self.is_windows():
+                    os.chmod(self.path_ssh_config, 0o600)
+
+                print("[+] Host deleted")
+                input("\nPress Enter...")
+                return
 
     @require_ssh_config
     def open_editor(self) -> None:
