@@ -822,33 +822,33 @@ class ShortSSH:
 
     def main_menu(self) -> None:
 
-        menu = [
-            "1. Add new host",
-            "2. Open config in editor",
-            "3. Find host",
-            "4. Backup/Restore SSH config",
-            "5. Manual copy SSH key to host",
-            "q. Quit",
-        ]
+        menu: dict[str, tuple[str, Optional[Callable[[], None]]]] = {
+            "1": ("Add new host", self.add_menu),
+            "2": ("Find host", self.find_menu),
+            "3": ("Open config in editor", self.open_editor),
+            "4": ("Backup/Restore SSH config", self.backup_restore_menu),
+            "5": ("Manual copy SSH key to host", self.copy_ssh_key_menu),
+            "q": ("Quit", None),
+        }
 
         while True:
             clear_console()
             print(self.logo())
-            for item in menu:
-                print(item)
+
+            for key, (title, _) in menu.items():
+                print(f"{key}. {title}")
+
             ch = input("\n[>]: ").strip().lower()
-            if ch == "q":
+
+            if ch not in menu:
+                continue
+
+            _, action = menu[ch]
+
+            if action is None:
                 break
-            elif ch == "1":
-                self.add_menu()
-            elif ch == "2":
-                self.open_editor()
-            elif ch == "3":
-                self.find_menu()
-            elif ch == "4":
-                self.backup_restore_menu()
-            elif ch == "5":
-                self.copy_ssh_key_menu()
+
+            action()
 
     def main(self) -> None:
         self.main_menu()
