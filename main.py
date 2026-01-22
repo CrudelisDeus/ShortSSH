@@ -105,12 +105,27 @@ class ShortSSH:
         self.program_dir = os.path.dirname(os.path.abspath(__file__))
         self.backup_dir = os.path.join(self.program_dir, "backups")
 
+        # logo
+        self.colors = [
+            "\033[38;5;20m",
+            "\033[38;5;52m",
+            "\033[38;5;57m",
+            "\033[38;5;63m",
+            "\033[38;5;88m",
+            "\033[38;5;93m",
+        ]
+        self.end_color = "\033[0m"
+
     def logo(self) -> str:
-        logo = rf"""
+        import random
+
+        selected_color = random.choice(self.colors)
+
+        logo = rf"""{selected_color}
   / _ \
-\_\(_)/_/ {self.name_app} v{self.version_app}
- _//o\\_  {self.github_url}
-  /   \
+\_\(_)/_/ {self.name_app}{self.end_color} v{self.version_app}
+{selected_color} _//o\\_{self.end_color}  {self.github_url}
+{selected_color}  /   \{self.end_color}
 """
         return logo
 
