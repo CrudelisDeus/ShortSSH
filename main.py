@@ -72,7 +72,7 @@ def require_ssh_config(
                 if not self.is_windows():
                     os.chmod(ssh_dir, 0o700)
                 with open(self.path_ssh_config, "w") as f:
-                    print("[+] Creating SSH config file...")
+                    print("\n[+] Creating SSH config file...")
                     f.write(
                         """#-----------------#
 # ShortSSH Config #
@@ -228,6 +228,14 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def delete_ssh_config(self) -> None:
+        if not os.path.isfile(self.path_ssh_config):
+            print("\n[!] SSH config file does not exist")
+            return
+
+        os.remove(self.path_ssh_config)
+        print("\n[+] SSH config file deleted")
+
     def change_host(self, selected: str) -> None:
         clear_console()
         print(selected)
@@ -835,6 +843,24 @@ class ShortSSH:
 
             self.copy_pubkey_to_host(selected_key)
 
+    def delete_config_menu(self) -> None:
+        # menu: dict[str, tuple[str, Optional[Callable[[], None]]]] = {
+        #     "y": ("/ n", self.add_menu),
+        #     "n": ("Back", None),
+        # }
+        while True:
+            clear_console()
+            print(self.logo())
+            print("[!] Are you sure you want to delete the SSH config file? (y/n)")
+            ch = input("\n[>]: ").strip().lower()
+
+            if ch == "y":
+                self.delete_ssh_config()
+                input("\nPress Enter...")
+                break
+            elif ch == "n":
+                break
+
     def main_menu(self) -> None:
 
         menu: dict[str, tuple[str, Optional[Callable[[], None]]]] = {
@@ -843,6 +869,7 @@ class ShortSSH:
             "3": ("Open config in editor", self.open_editor),
             "4": ("Backup/Restore SSH config", self.backup_restore_menu),
             "5": ("Manual copy SSH key to host", self.copy_ssh_key_menu),
+            "6": ("Delete SSH config file", self.delete_config_menu),
             "q": ("Quit", None),
         }
 
