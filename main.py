@@ -851,9 +851,16 @@ class ShortSSH:
         while True:
             clear_console()
             print(self.logo())
-            print("[!] Are you sure you want to delete the SSH config file? (y/n)")
-            ch = input("\n[>]: ").strip().lower()
+            msg = " ".join(
+                [
+                    "[!]",
+                    "Are you sure you want to delete",
+                    "the SSH config file? (y/n)",
+                ]
+            )
+            print(msg)
 
+            ch = input("\n[>]: ").strip().lower()
             if ch == "y":
                 self.delete_ssh_config()
                 input("\nPress Enter...")
