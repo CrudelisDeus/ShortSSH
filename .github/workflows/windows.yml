@@ -44,9 +44,12 @@ jobs:
             echo "py_name=shortssh.py" >> $GITHUB_OUTPUT
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
           else
+            SHORT_SHA="${GITHUB_SHA::7}"
+            VERSION=".dev-${SHORT_SHA}"
+
             echo "exe_name=dev-shortssh.exe" >> $GITHUB_OUTPUT
             echo "py_name=dev-shortssh.py" >> $GITHUB_OUTPUT
-            echo "version=.dev" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
           fi
 
       - name: Patch version in main.py
