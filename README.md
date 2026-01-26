@@ -20,7 +20,14 @@ ssh root@192.168.1.42 -p 2222 -i ~/.ssh/id_ed25519_server
 
 ### Use installer
 
+`download bat`
 ```bash
-
+Invoke-WebRequest `
+"https://raw.githubusercontent.com/CrudelisDeus/ShortSSH/main/install.bat" `
+-OutFile "$env:USERPROFILE\Downloads\ShortSSH-install.bat"
 ```
-
+`install`
+```bash
+cd $env:USERPROFILE\Downloads
+.\ShortSSH-install.bat
+```
