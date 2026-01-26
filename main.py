@@ -628,6 +628,7 @@ class ShortSSH:
                 self.find_host("user")
 
     @require_ssh_config
+    @require_ssh_private_key
     def add_menu(self) -> None:
         clear_console()
         print(self.logo())
