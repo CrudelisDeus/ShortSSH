@@ -37,16 +37,14 @@
     <thead>
         <tr>
             <th>Name</th>
-            <th>Link</th>
+            <th>Release</th>
+            <th>Dev</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td>Release link</td>
             <td>https://shortssh.deus-soft.org/shortssh.exe</td>
-        </tr>
-        <tr>
-            <td>Release link</td>
             <td>https://shortssh.deus-soft.org/dev-shortssh.exe</td>
         </tr>
     </tbody>
