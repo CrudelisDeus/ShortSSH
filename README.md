@@ -52,8 +52,6 @@
     </tbody>
 </table>
 
-<h3>Manual</h3>
-
 </div>
 
 `powershell`
