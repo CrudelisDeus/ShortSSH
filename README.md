@@ -13,6 +13,8 @@
 ssh root@192.168.1.42 -p 2222 -i ~/.ssh/id_ed25519_server
 ```
 
+![](./readme/img/1.png)
+
 ## Windows download
 
 - release: https://shortssh.deus-soft.org/shortssh.exe
