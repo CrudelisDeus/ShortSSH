@@ -1,6 +1,8 @@
 <div align="center">
   <h1>ShortSSH</h1>
-  <img src="./readme/img/original.svg" width="100" height="100" alt="ShortSSH logo">
+
+  <img src="./readme/img/logo1.gif" alt="logo">
+
   <p>ShortSSH is your personal SSH manager in the terminal. It simplifies working with SSH hosts, keys, and configuration, removing the hassle and mistakes of manual setup.</p>
   <img src="./readme/img/welcome.gif">
 </div>
