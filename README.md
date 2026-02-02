@@ -33,8 +33,6 @@
 
 <h2>Windows download</h2>
 
-<h3>Link</h3>
-
 <table>
     <thead>
         <tr>
