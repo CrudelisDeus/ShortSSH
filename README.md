@@ -12,6 +12,7 @@
 <table>
     <thead>
         <tr>
+            <th>№</th>
             <th>Example</th>
             <th>Standart command</th>
             <th>ShortSSH</th>
@@ -19,12 +20,14 @@
     </thead>
     <tbody>
         <tr>
-            <td>1 ssh connect</td>
+            <td>1</td>
+            <td>ssh connect</td>
             <td>ssh dmytro@192.168.1.112</td>
             <td>ssh 1112</td>
         </tr>
         <tr>
-            <td>2 rsync</td>
+            <td>1</td>
+            <td>rsync</td>
             <td>rsync rvu ./* dmytro@192.168.1.112:/home</td>
             <td>rsync rvu ./* 1112:/home</td>
         </tr>
