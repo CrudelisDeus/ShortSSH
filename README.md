@@ -26,7 +26,7 @@
             <td>ssh 1112</td>
         </tr>
         <tr>
-            <td>1</td>
+            <td>2</td>
             <td>rsync</td>
             <td>rsync rvu ./* dmytro@192.168.1.112:/home</td>
             <td>rsync rvu ./* 1112:/home</td>
