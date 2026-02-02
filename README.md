@@ -31,22 +31,40 @@
     </tbody>
 </table>
 
+<h2>Windows download</h2>
+
+<h3>Link</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Link</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Release link</td>
+            <td>https://shortssh.deus-soft.org/shortssh.exe</td>
+        </tr>
+        <tr>
+            <td>Release link</td>
+            <td>https://shortssh.deus-soft.org/dev-shortssh.exe</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Manual</h3>
+
 </div>
 
-## Windows download
-
-- release: https://shortssh.deus-soft.org/shortssh.exe
-- dev: https://shortssh.deus-soft.org/dev-shortssh.exe
-
-### Use installer
-
-`download bat`
+`powershell`
 ```bash
 Invoke-WebRequest `
 "https://raw.githubusercontent.com/CrudelisDeus/ShortSSH/main/install.bat" `
 -OutFile "$env:USERPROFILE\Downloads\ShortSSH-install.bat"
 ```
-`install`
+
 ```bash
 cd $env:USERPROFILE\Downloads
 .\ShortSSH-install.bat
