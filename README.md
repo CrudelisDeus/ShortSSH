@@ -4,28 +4,7 @@
 
 <p>ShortSSH is your personal SSH manager in the terminal. It simplifiesworking with SSH hosts, keys, and configuration, removing the hassle andmistakes of manual setup.</p>
 
-<h2>Automatic config and key creation</h2>
 
-<table >
-  <tr>
-    <th >~/.ssh/config</th>
-    <th>~/.ssh/key</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://shortssh.deus-soft.org/shortssh.exe">
-        <img src="./readme/img/file.gif">
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://shortssh.deus-soft.org/shortssh.exe">
-        <img src="./readme/img/key.gif">
-      </a>
-    </td>
-  </tr>
-</table>
-
-<h3>Example usage</h3>
 
 <table>
     <thead>
@@ -52,6 +31,54 @@
     </tbody>
 </table>
 
+<h2>Automatic config and key creation</h2>
+
+<table >
+  <tr>
+    <th >~/.ssh/config</th>
+    <th>~/.ssh/key</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://shortssh.deus-soft.org/shortssh.exe">
+        <img src="./readme/img/file.gif">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://shortssh.deus-soft.org/shortssh.exe">
+        <img src="./readme/img/key.gif">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<h2>Lightweight config manager</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th align="center">Run manager</th>
+      <th align="center">Add / Edit / Delete hosts</th>
+      <th align="center">Search</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td align="center">
+        <img src="./readme/img/run.png">
+      </td>
+      <td align="center">
+        <img src="./readme/img/change.png">
+      </td>
+      <td align="center">
+        <img src="./readme/img/search.png">
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
 <h2>Windows download</h2>
 
 <table>
@@ -73,7 +100,7 @@
 
 </div>
 
-`powershell`
+`powershell | Update / Install`
 ```bash
 Invoke-WebRequest `
 "https://raw.githubusercontent.com/CrudelisDeus/ShortSSH/main/install.bat" `
@@ -83,4 +110,9 @@ Invoke-WebRequest `
 ```bash
 cd $env:USERPROFILE\Downloads
 .\ShortSSH-install.bat
+```
+
+`powershell / cmd | run manager`
+```bash
+sssh
 ```
