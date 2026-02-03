@@ -22,13 +22,13 @@
         <tr>
             <td>1</td>
             <td>ssh connect</td>
-            <td>ssh dmytro@192.168.1.112</td>
+            <td>ssh -p 22 dmytro@192.168.1.112</td>
             <td>ssh 1112</td>
         </tr>
         <tr>
             <td>2</td>
             <td>rsync</td>
-            <td>rsync rvu ./* dmytro@192.168.1.112:/home</td>
+            <td>rsync rvu ./* -e "ssh -p 53" dmytro@192.168.1.112:/home</td>
             <td>rsync rvu ./* 1112:/home</td>
         </tr>
     </tbody>
