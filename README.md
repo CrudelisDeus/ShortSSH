@@ -1,13 +1,31 @@
 <div align="center">
-  <h1>ShortSSH</h1>
 
-  <img src="./readme/img/logo1.gif" alt="logo">
+<img src="./readme/img/logo1.gif" alt="logo">
 
-  <p>ShortSSH is your personal SSH manager in the terminal. It simplifies working with SSH hosts, keys, and configuration, removing the hassle and mistakes of manual setup.</p>
-  <!-- <img src="./readme/img/welcome.gif"> -->
+<p>ShortSSH is your personal SSH manager in the terminal. It simplifiesworking with SSH hosts, keys, and configuration, removing the hassle andmistakes of manual setup.</p>
 
+<h2>Automatic config and key creation</h2>
 
-<h2>Example usage</h2>
+<table >
+  <tr>
+    <th >~/.ssh/config</th>
+    <th>~/.ssh/key</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://shortssh.deus-soft.org/shortssh.exe">
+        <img src="./readme/img/file.gif">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://shortssh.deus-soft.org/shortssh.exe">
+        <img src="./readme/img/key.gif">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<h3>Example usage</h3>
 
 <table>
     <thead>
