@@ -50,6 +50,18 @@
       </a>
     </td>
   </tr>
+  <tr>
+    <td align="center">
+      <a href="https://shortssh.deus-soft.org/shortssh.exe">
+        <img src="./readme/img/create-config.png">
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://shortssh.deus-soft.org/shortssh.exe">
+        <img src="./readme/img/create-keys.png">
+      </a>
+    </td>
+  </tr>
 </table>
 
 <h2>Lightweight config manager</h2>
