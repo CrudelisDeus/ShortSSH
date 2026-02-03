@@ -78,6 +78,33 @@
   </tbody>
 </table>
 
+<h2>Copy public keys to server after adding</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th align="center">Run manager</th>
+      <th align="center">Add / Edit / Delete hosts</th>
+      <th align="center">Search</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td align="center">
+        <img src="./readme/img/copy-key-1.png">
+      </td>
+      <td align="center">
+        <img src="./readme/img/copy-key-2.png">
+      </td>
+      <td align="center">
+        <img src="./readme/img/copy-key-3.png">
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
 
 <h2>Windows download</h2>
 
