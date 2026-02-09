@@ -228,6 +228,66 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def not_valid_argument(self) -> None:
+        print(self.logo())
+        print("[!] Invalid argument. Use --help or -h.\n")
+
+    def doc_help(self) -> None:
+        print(self.logo())
+        print("Usage:")
+        print("  shortssh              Run interactive menu")
+        print("  shortssh --list       Print hosts as: shortname | ip")
+        print("  shortssh --help       Show this help\n")
+
+    def list_hosts_short_ip(self) -> None:
+        if not os.path.isfile(self.path_ssh_config):
+            print(f"[!] SSH config not found: {self.path_ssh_config}")
+
+        hosts: list[tuple[str, str]] = []
+        cur_host: str | None = None
+        cur_ip: str | None = None
+
+        def push() -> None:
+            nonlocal cur_host, cur_ip
+            if cur_host:
+                hosts.append((cur_host, cur_ip or "-"))
+            cur_host, cur_ip = None, None
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+
+                low = s.lower()
+                if low.startswith("host "):
+                    push()
+                    parts = s.split()
+                    cur_host = parts[1] if len(parts) > 1 else None
+                    continue
+
+                if cur_host and low.startswith("hostname "):
+                    cur_ip = s.split(None, 1)[1].strip()
+
+        push()
+
+        print(self.logo())
+
+        if not hosts:
+            print("[!] No hosts in config")
+        else:
+            width = max(len(name) for name, _ in hosts)
+            print("Name".ljust(width) + "   IP")
+            print("====".ljust(width) + "   ==")
+            for name, ip in hosts:
+                print(f"{name.ljust(width)} | {ip}")
+            print("====".ljust(width) + "   ==\n")
+
     def delete_ssh_config(self) -> None:
         if not os.path.isfile(self.path_ssh_config):
             print("\n[!] SSH config file does not exist")
@@ -905,6 +965,21 @@ class ShortSSH:
         clear_console()
 
 
-if __name__ == "__main__":
+def main():
     app = ShortSSH()
-    app.main()
+
+    if len(sys.argv) == 1:
+        app.main()
+
+    args = sys.argv[1:]
+
+    if args[0] == "--list":
+        app.list_hosts_short_ip()
+    elif args[0] in ("--help", "-h"):
+        app.doc_help()
+    else:
+        app.not_valid_argument()
+
+
+if __name__ == "__main__":
+    main()
