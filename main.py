@@ -241,7 +241,7 @@ class ShortSSH:
             ("sssh --list OR sssh -l", "Print hosts as: shortname, ip, port"),
             ("sssh --help OR sssh -h", "Show this help"),
             (
-                "sssh -L <client_port> <local_port> <host>",
+                "sssh -L <local_port> <client_port> <host>",
                 "Create SSH tunnel (port forward)",
             ),
         ]
