@@ -234,14 +234,32 @@ class ShortSSH:
 
     def doc_help(self) -> None:
         print(self.logo())
-        print("Usage:")
-        print("  sssh                       Run interactive menu")
-        print(
-            "  sssh --list OR sssh -l    ",
-            "Print hosts as: shortname, ip, port",
-        )
+        print("Usage:\n")
 
-        print("  sssh --help OR sssh -h     Show this help\n")
+        rows = [
+            ("sssh", "Run interactive menu"),
+            ("sssh --list OR sssh -l", "Print hosts as: shortname, ip, port"),
+            ("sssh --help OR sssh -h", "Show this help"),
+            (
+                "sssh -L <client_port> <local_port> <host>",
+                "Create SSH tunnel (port forward)",
+            ),
+        ]
+
+        w = max(len(cmd) for cmd, _ in rows)
+
+        for cmd, desc in rows:
+            print(f"  {cmd.ljust(w)}   {desc}")
+
+        print()
+
+    def ssh_port_forward(
+        self,
+        client_port: int,
+        local_port: int,
+        host: str,
+    ) -> None:
+        os.system(f"ssh -L {client_port}:localhost:{local_port} {host}")
 
     def list_hosts_short_ip(self) -> None:
         if not os.path.isfile(self.path_ssh_config):
@@ -987,6 +1005,7 @@ def main():
 
     if len(sys.argv) == 1:
         app.main()
+        return
 
     args = sys.argv[1:]
 
@@ -994,6 +1013,17 @@ def main():
         app.list_hosts_short_ip()
     elif args[0] in ("--help", "-h"):
         app.doc_help()
+    elif args[0] in ("--forward", "-L"):
+        if len(args) != 4:
+            app.not_valid_argument()
+            return
+
+        client_port = int(args[1])
+        local_port = int(args[2])
+        host = args[3]
+
+        app.ssh_port_forward(client_port, local_port, host)
+
     else:
         app.not_valid_argument()
 
