@@ -100,10 +100,14 @@ class ShortSSH:
         self.ip_host: str | None = None
         self.short_name_host: str | None = None
         self.key_host: str | None = None
+        self.client_port_forward: int | None = None
+        self.local_port_forward: int | None = None
 
         self.path_ssh_config = os.path.expanduser("~/.ssh/config")
         self.program_dir = os.path.dirname(os.path.abspath(__file__))
         self.backup_dir = os.path.join(self.program_dir, "backups")
+
+        self.add_forward: bool = False
 
         # logo
         self.colors = [
@@ -228,6 +232,9 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def reset_add_host_data(self) -> None:
+        self.add_forward = False
+
     def not_valid_argument(self) -> None:
         print(self.logo())
         print("[!] Invalid argument. Use --help or -h.\n")
@@ -669,6 +676,21 @@ class ShortSSH:
 
                 user = getpass.getuser()
             self.user_host = user
+        elif item == "forward_client_port":
+            client_port = input("Enter Client Port: ")
+            if self.check_host_port(client_port):
+                self.client_port_forward = int(client_port)
+            else:
+                print("\n[!] Invalid Port format\n")
+                return False
+        elif item == "forward_local_port":
+            local_port = input("Enter Local Port: ")
+            if self.check_host_port(local_port):
+                self.local_port_forward = int(local_port)
+            else:
+                print("\n[!] Invalid Port format\n")
+                return False
+
         elif item == "short_name":
             short_name = input("Enter Short Name: ").strip()
 
@@ -696,6 +718,31 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # Menu
     # ------------------------------------------------------------------------
+    def select_add_menu(self) -> None:
+
+        menu = [
+            "1. Add standart host",
+            "2. Add port forward host",
+            "q. Back",
+        ]
+
+        while True:
+            clear_console()
+            print(self.logo())
+            for item in menu:
+                print(item)
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "q":
+                return
+            elif ch == "1":
+                break
+            elif ch == "2":
+                self.add_forward = True
+                break
+
+        self.add_menu()
+        self.reset_add_host_data()
+
     @require_ssh_config
     def find_menu(self) -> None:
         menu = [
@@ -736,6 +783,12 @@ class ShortSSH:
             pass
         while not self.set_host("short_name"):
             pass
+
+        if self.add_forward:
+            while not self.set_host("forward_client_port"):
+                pass
+            while not self.set_host("forward_local_port"):
+                pass
 
         private_keys: list[str] = self.get_ssh_private_key_list()
 
@@ -781,6 +834,10 @@ class ShortSSH:
             if self.key_host:
                 print(f"    Key File: {self.key_host}")
 
+            if self.add_forward:
+                print(f"    Forward Client Port: {self.client_port_forward}")
+                print(f"    Forward Local Port: {self.local_port_forward}")
+
             print("\nAre you sure you want to add this host? (y/n)")
 
             ch = input("\n[>]: ").strip().lower()
@@ -795,6 +852,10 @@ class ShortSSH:
                     )
                     if self.key_host:
                         f.write(f"        IdentityFile {self.key_host}\n")
+                    if self.add_forward:
+                        f.write(
+                            f"        LocalForward {self.client_port_forward} localhost:{self.local_port_forward}\n"
+                        )
                 break
             elif ch == "n":
                 return
@@ -802,6 +863,9 @@ class ShortSSH:
                 print("\n[!] Please enter y or n.")
                 continue
         while True:
+            if not self.key_host:
+                return
+
             if self.key_host:
                 clear_console()
                 print(self.logo())
@@ -967,7 +1031,7 @@ class ShortSSH:
     def main_menu(self) -> None:
 
         menu: dict[str, tuple[str, Optional[Callable[[], None]]]] = {
-            "1": ("Add new host", self.add_menu),
+            "1": ("Add new host", self.select_add_menu),
             "2": ("Find host", self.find_menu),
             "3": ("Open config in editor", self.open_editor),
             "4": ("Backup/Restore SSH config", self.backup_restore_menu),
