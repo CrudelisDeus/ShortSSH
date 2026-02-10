@@ -854,7 +854,8 @@ class ShortSSH:
                         f.write(f"        IdentityFile {self.key_host}\n")
                     if self.add_forward:
                         f.write(
-                            f"        LocalForward {self.client_port_forward} localhost:{self.local_port_forward}\n"
+                            f"        LocalForward {self.local_port_forward} "
+                            f"localhost:{self.client_port_forward}\n"
                         )
                 break
             elif ch == "n":
@@ -1089,7 +1090,7 @@ def main():
         app.ssh_port_forward(client_port, local_port, host)
 
     else:
-        app.not_valid_argument()
+        os.system("ssh " + " ".join(args))
 
 
 if __name__ == "__main__":
