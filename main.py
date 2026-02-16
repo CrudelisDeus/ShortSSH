@@ -891,7 +891,7 @@ class ShortSSH:
                     if self.key_host:
                         f.write(f"        IdentityFile {self.key_host}\n")
                     if self.notes_host:
-                        f.write(f"        # Notes {self.notes_host}\n")
+                        f.write(f"        # Notes: {self.notes_host}\n")
                     if self.add_forward:
                         f.write(
                             f"        LocalForward {self.local_port_forward} "
