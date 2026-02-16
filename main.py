@@ -102,6 +102,7 @@ class ShortSSH:
         self.ip_host: str | None = None
         self.short_name_host: str | None = None
         self.key_host: str | None = None
+        self.notes_host: str | None = None
         self.client_port_forward: int | None = None
         self.local_port_forward: int | None = None
 
@@ -275,16 +276,24 @@ class ShortSSH:
             print(f"[!] SSH config not found: {self.path_ssh_config}")
             return
 
-        hosts: list[tuple[str, str, str]] = []
+        hosts: list[tuple[str, str, str, str]] = []
         cur_host: str | None = None
         cur_ip: str | None = None
         cur_port: str | None = None
+        cur_notes: str | None = None
 
         def push() -> None:
-            nonlocal cur_host, cur_ip, cur_port
+            nonlocal cur_host, cur_ip, cur_port, cur_notes
             if cur_host:
-                hosts.append((cur_host, cur_ip or "-", cur_port or "22"))
-            cur_host, cur_ip, cur_port = None, None, None
+                hosts.append(
+                    (
+                        cur_host,
+                        cur_ip or "-",
+                        cur_port or "22",
+                        cur_notes or "-    ",
+                    )
+                )
+            cur_host, cur_ip, cur_port, cur_notes = None, None, None, None
 
         with open(
             self.path_ssh_config,
@@ -298,6 +307,7 @@ class ShortSSH:
                     continue
 
                 low = s.lower()
+
                 if low.startswith("host "):
                     push()
                     parts = s.split()
@@ -310,27 +320,40 @@ class ShortSSH:
                 if cur_host and low.startswith("port "):
                     cur_port = s.split(None, 1)[1].strip()
 
+                if cur_host and low.startswith("notes "):
+                    cur_notes = s.split(None, 1)[1].strip()
+
         push()
 
         print(self.logo())
 
         if not hosts:
             print("[!] No hosts in config")
-        else:
-            w_name = max(len(name) for name, _, _ in hosts)
-            w_ip = max(len(ip) for _, ip, _ in hosts)
+            return
 
-            header = f"{'Name'.ljust(w_name)} | {'IP'.ljust(w_ip)} | Port"
+        w_name = max(len(name) for name, _, _, _ in hosts)
+        w_ip = max(len(ip) for _, ip, _, _ in hosts)
+        w_port = max(len(port) for _, _, port, _ in hosts)
+        w_notes = max(len(notes) for _, _, _, notes in hosts)
 
-            line = "=" * len(header)
+        header = (
+            "| " + f"{'Name'.ljust(w_name)} | {'IP'.ljust(w_ip)} | "
+            f"{'Port'.ljust(w_port)} | {'Notes'.ljust(w_notes)}" + " |"
+        )
 
-            print(header)
-            print(line)
+        line = "=" * len(header)
 
-            for name, ip, port in hosts:
-                print(f"{name.ljust(w_name)} | {ip.ljust(w_ip)} | {port}")
+        print(line)
+        print(header)
+        print(line)
 
-            print(line + "\n")
+        for name, ip, port, notes in hosts:
+            print(
+                "| " + f"{name.ljust(w_name)} | {ip.ljust(w_ip)} | "
+                f"{port.ljust(w_port)} | {notes.ljust(w_notes)}" + " |"
+            )
+
+        print(line + "\n")
 
     def delete_ssh_config(self) -> None:
         if not os.path.isfile(self.path_ssh_config):
@@ -714,6 +737,9 @@ class ShortSSH:
                 self.key_host = key
             else:
                 self.key_host = None
+        elif item == "Notes":
+            notes = input("Enter Notes: ").strip()
+            self.notes_host = notes if notes else "-"
 
         return True
 
@@ -785,6 +811,8 @@ class ShortSSH:
             pass
         while not self.set_host("short_name"):
             pass
+        while not self.set_host("Notes"):
+            pass
 
         if self.add_forward:
             while not self.set_host("forward_client_port"):
@@ -832,9 +860,11 @@ class ShortSSH:
             print(f"    Username: {self.user_host}")
             print(f"    IP Address: {self.ip_host}")
             print(f"    Short Name: {self.short_name_host}")
-
             if self.key_host:
                 print(f"    Key File: {self.key_host}")
+
+            if self.notes_host:
+                print(f"    Notes: {self.notes_host}")
 
             if self.add_forward:
                 print(f"    Forward Client Port: {self.client_port_forward}")
@@ -854,6 +884,8 @@ class ShortSSH:
                     )
                     if self.key_host:
                         f.write(f"        IdentityFile {self.key_host}\n")
+                    if self.notes_host:
+                        f.write(f"        Notes {self.notes_host}\n")
                     if self.add_forward:
                         f.write(
                             f"        LocalForward {self.local_port_forward} "
@@ -1007,10 +1039,6 @@ class ShortSSH:
             self.copy_pubkey_to_host(selected_key)
 
     def delete_config_menu(self) -> None:
-        # menu: dict[str, tuple[str, Optional[Callable[[], None]]]] = {
-        #     "y": ("/ n", self.add_menu),
-        #     "n": ("Back", None),
-        # }
         while True:
             clear_console()
             print(self.logo())
