@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional
 
 def clear_console() -> None:
     os.system("cls" if os.name == "nt" else "clear")
+    print("\033[2J\033[H", end="")
 
 
 def require_ssh_private_key(
