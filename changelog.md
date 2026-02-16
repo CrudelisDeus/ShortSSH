@@ -37,7 +37,12 @@ Changed
 
 - Updated the README.
 
-## [v0.1.4] -
+## [v0.1.4] -2025-02-16
+
+Added
+
+- Added support for host notes (stored as `# Notes:` comments inside `~/.ssh/config`).
+- Added display of the Notes column in the `--list` or `-l` output table.
 
 Changed
 
