@@ -167,4 +167,5 @@ sssh
 ```bash
 sudo curl -L https://shortssh.deus-soft.org/shortssh.py -o /usr/local/bin/sssh
 sudo chmod +x /usr/local/bin/sssh
+sudo sed -i 's/\r$//' /usr/local/bin/sssh
 ```
