@@ -8,7 +8,6 @@ from typing import Any, Callable, Optional
 
 def clear_console() -> None:
     os.system("cls" if os.name == "nt" else "clear")
-    print("\033[2J\033[H", end="")
 
 
 def require_ssh_private_key(
@@ -225,7 +224,7 @@ class ShortSSH:
         ) as f:
             for line in f:
                 s = line.strip()
-                if not s or s.startswith("#"):
+                if not s:
                     continue
                 if s.lower().startswith("host "):
                     parts = s.split()
@@ -304,7 +303,7 @@ class ShortSSH:
         ) as f:
             for line in f:
                 s = line.strip()
-                if not s or s.startswith("#"):
+                if not s:
                     continue
 
                 low = s.lower()
@@ -321,8 +320,14 @@ class ShortSSH:
                 if cur_host and low.startswith("port "):
                     cur_port = s.split(None, 1)[1].strip()
 
-                if cur_host and low.startswith("notes "):
-                    cur_notes = s.split(None, 1)[1].strip()
+                if cur_host and s.startswith("#"):
+                    c = s[1:].strip()
+                    c_low = c.lower()
+                    if c_low.startswith("notes:"):
+                        cur_notes = c.split(":", 1)[1].strip()
+                    elif c_low.startswith("notes "):
+                        cur_notes = c.split(None, 1)[1].strip()
+                    continue
 
         push()
 
@@ -886,7 +891,7 @@ class ShortSSH:
                     if self.key_host:
                         f.write(f"        IdentityFile {self.key_host}\n")
                     if self.notes_host:
-                        f.write(f"        Notes {self.notes_host}\n")
+                        f.write(f"        # Notes {self.notes_host}\n")
                     if self.add_forward:
                         f.write(
                             f"        LocalForward {self.local_port_forward} "
