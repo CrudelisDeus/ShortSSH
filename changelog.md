@@ -36,3 +36,9 @@ Added
 Changed
 
 - Updated the README.
+
+## [v0.1.4] -
+
+Changed
+
+- Updated the README.

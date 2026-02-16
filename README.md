@@ -28,6 +28,12 @@
             <td>rsync rvu ./* -e "ssh -p 53" dmytro@192.168.1.112:/home</td>
             <td>rsync rvu ./* 1112:/home</td>
         </tr>
+        <tr>
+            <td>3</td>
+            <td>ssh -L</td>
+            <td>ssh -i id_ed25519 -L 5555:localhost:5432 ubuntu@127.0.0.1</td>
+            <td>ssh dev</td>
+        </tr>
     </tbody>
 </table>
 
