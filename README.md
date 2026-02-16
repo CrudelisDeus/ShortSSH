@@ -155,3 +155,10 @@ cd $env:USERPROFILE\Downloads
 ```bash
 sssh
 ```
+
+<h2>Linux download</h2>
+
+```bash
+sudo curl -L https://shortssh.deus-soft.org/shortssh.py -o /usr/local/bin/sssh
+sudo chmod +x /usr/local/bin/sssh
+```
