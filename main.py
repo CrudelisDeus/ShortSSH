@@ -105,6 +105,7 @@ class ShortSSH:
         self.notes_host: str | None = None
         self.client_port_forward: int | None = None
         self.local_port_forward: int | None = None
+        self.host_group: str | None = None
 
         self.path_ssh_config = os.path.expanduser("~/.ssh/config")
         self.program_dir = os.path.dirname(os.path.abspath(__file__))
@@ -251,9 +252,10 @@ class ShortSSH:
             ("sssh --list OR sssh -l", "Print hosts as: shortname, ip, port"),
             ("sssh --help OR sssh -h", "Show this help"),
             (
-                "sssh -L <local_port> <client_port> <host>",
-                "Create SSH tunnel (port forward)",
+                "sssh --list-group OR -lg <group>",
+                "List hosts in group with IP and Port",
             ),
+            ("sssh <ssh args>", "Run ssh with provided arguments"),
         ]
 
         w = max(len(cmd) for cmd, _ in rows)
@@ -263,37 +265,44 @@ class ShortSSH:
 
         print()
 
-    def ssh_port_forward(
-        self,
-        client_port: int,
-        local_port: int,
-        host: str,
-    ) -> None:
-        os.system(f"ssh -L {client_port}:localhost:{local_port} {host}")
+    def list_hosts_short_ip_group(self, group_name: str) -> None:
+        group_name = group_name.strip()
+        if not group_name:
+            print("[!] Group name is empty. Example: sssh -lg Test")
+            return
 
-    def list_hosts_short_ip(self) -> None:
         if not os.path.isfile(self.path_ssh_config):
             print(f"[!] SSH config not found: {self.path_ssh_config}")
             return
 
-        hosts: list[tuple[str, str, str, str]] = []
+        import re
+
+        groups: dict[str, list[tuple[str, str, str, str]]] = {}
+
         cur_host: str | None = None
         cur_ip: str | None = None
         cur_port: str | None = None
         cur_notes: str | None = None
+        cur_group: str = "Ungrouped"
+
+        pending_group: str | None = None
+        re_group = re.compile(r"^\s*#\s*G\s*:\s*(.+?)\s*$", re.IGNORECASE)
 
         def push() -> None:
-            nonlocal cur_host, cur_ip, cur_port, cur_notes
+            nonlocal cur_host, cur_ip, cur_port, cur_notes, cur_group
             if cur_host:
-                hosts.append(
-                    (
-                        cur_host,
-                        cur_ip or "-",
-                        cur_port or "22",
-                        cur_notes or "-    ",
-                    )
+                row = (
+                    cur_host,
+                    cur_ip or "-",
+                    cur_port or "22",
+                    cur_notes or "-",
                 )
-            cur_host, cur_ip, cur_port, cur_notes = None, None, None, None
+                groups.setdefault(cur_group, []).append(row)
+            cur_host = None
+            cur_ip = None
+            cur_port = None
+            cur_notes = None
+            cur_group = "Ungrouped"
 
         with open(
             self.path_ssh_config,
@@ -302,7 +311,15 @@ class ShortSSH:
             errors="replace",
         ) as f:
             for line in f:
-                s = line.strip()
+                raw = line.rstrip("\n")
+                s = raw.strip()
+
+                m = re_group.match(raw)
+                if m:
+                    name = m.group(1).strip()
+                    pending_group = name if name else None
+                    continue
+
                 if not s:
                     continue
 
@@ -312,13 +329,17 @@ class ShortSSH:
                     push()
                     parts = s.split()
                     cur_host = parts[1] if len(parts) > 1 else None
+                    cur_group = pending_group or "Ungrouped"
+                    pending_group = None
                     continue
 
                 if cur_host and low.startswith("hostname "):
                     cur_ip = s.split(None, 1)[1].strip()
+                    continue
 
                 if cur_host and low.startswith("port "):
                     cur_port = s.split(None, 1)[1].strip()
+                    continue
 
                 if cur_host and s.startswith("#"):
                     c = s[1:].strip()
@@ -327,39 +348,187 @@ class ShortSSH:
                         cur_notes = c.split(":", 1)[1].strip()
                     elif c_low.startswith("notes "):
                         cur_notes = c.split(None, 1)[1].strip()
+
+        push()
+
+        hosts = groups.get(group_name)
+
+        if not hosts:
+            if group_name in groups:
+                print(f"[!] Group '{group_name}' exists but has no hosts")
+            else:
+                print(f"[!] Group '{group_name}' not found")
+            return
+
+        print(self.logo())
+
+        w_name = max(len("Name"), max(len(r[0]) for r in hosts))
+        w_ip = max(len("IP"), max(len(r[1]) for r in hosts))
+        w_port = max(len("Port"), max(len(r[2]) for r in hosts))
+        w_notes = max(len("Notes"), max(len(r[3]) for r in hosts))
+
+        header = (
+            "| "
+            + f"{'Name'.ljust(w_name)} | {'IP'.ljust(w_ip)} | "
+            + f"{'Port'.ljust(w_port)} | {'Notes'.ljust(w_notes)} |"
+        )
+        line = "=" * len(header)
+
+        def print_group_row(name: str) -> None:
+            inner_width = len(header) - 4
+            text = f"Group: {name}"
+            print("| " + text.ljust(inner_width) + " |")
+
+        print(line)
+        print(header)
+        print(line)
+        print_group_row(group_name)
+        print(line)
+
+        for name, ip, port, notes in hosts:
+            row = (
+                "| "
+                + f"{name.ljust(w_name)} | {ip.ljust(w_ip)} | "
+                + f"{port.ljust(w_port)} | {notes.ljust(w_notes)} |"
+            )
+            print(row)
+
+        print(line + "\n")
+
+    def list_hosts_short_ip(self) -> None:
+        if not os.path.isfile(self.path_ssh_config):
+            print(f"[!] SSH config not found: {self.path_ssh_config}")
+            return
+
+        import re
+
+        groups: dict[str, list[tuple[str, str, str, str]]] = {}
+
+        cur_host: str | None = None
+        cur_ip: str | None = None
+        cur_port: str | None = None
+        cur_notes: str | None = None
+        cur_group: str = "Ungrouped"
+
+        pending_group: str | None = None
+        re_group = re.compile(r"^\s*#\s*G\s*:\s*(.+?)\s*$", re.IGNORECASE)
+
+        def push() -> None:
+            nonlocal cur_host, cur_ip, cur_port, cur_notes, cur_group
+            if cur_host:
+                row = (
+                    cur_host,
+                    cur_ip or "-",
+                    cur_port or "22",
+                    cur_notes or "-",
+                )
+                groups.setdefault(cur_group, []).append(row)
+            cur_host = None
+            cur_ip = None
+            cur_port = None
+            cur_notes = None
+            cur_group = "Ungrouped"
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            for line in f:
+                raw = line.rstrip("\n")
+                s = raw.strip()
+
+                m = re_group.match(raw)
+                if m:
+                    name = m.group(1).strip()
+                    pending_group = name if name else None
                     continue
+
+                if not s:
+                    continue
+
+                low = s.lower()
+
+                if low.startswith("host "):
+                    push()
+                    parts = s.split()
+                    cur_host = parts[1] if len(parts) > 1 else None
+                    cur_group = pending_group or "Ungrouped"
+                    pending_group = None
+                    continue
+
+                if cur_host and low.startswith("hostname "):
+                    cur_ip = s.split(None, 1)[1].strip()
+                    continue
+
+                if cur_host and low.startswith("port "):
+                    cur_port = s.split(None, 1)[1].strip()
+                    continue
+
+                if cur_host and s.startswith("#"):
+                    c = s[1:].strip()
+                    c_low = c.lower()
+                    if c_low.startswith("notes:"):
+                        cur_notes = c.split(":", 1)[1].strip()
+                    elif c_low.startswith("notes "):
+                        cur_notes = c.split(None, 1)[1].strip()
 
         push()
 
         print(self.logo())
 
-        if not hosts:
+        if not groups:
             print("[!] No hosts in config")
             return
 
-        w_name = max(len(name) for name, _, _, _ in hosts)
-        w_ip = max(len(ip) for _, ip, _, _ in hosts)
-        w_port = max(len(port) for _, _, port, _ in hosts)
-        w_notes = max(len(notes) for _, _, _, notes in hosts)
+        order: list[str] = []
+        if "Ungrouped" in groups:
+            order.append("Ungrouped")
+        order.extend(sorted(g for g in groups.keys() if g != "Ungrouped"))
+
+        all_rows: list[tuple[str, str, str, str]] = []
+        for g in order:
+            all_rows.extend(groups.get(g, []))
+
+        if not all_rows:
+            print("[!] No hosts in config")
+            return
+
+        w_name = max(len("Name"), max(len(r[0]) for r in all_rows))
+        w_ip = max(len("IP"), max(len(r[1]) for r in all_rows))
+        w_port = max(len("Port"), max(len(r[2]) for r in all_rows))
+        w_notes = max(len("Notes"), max(len(r[3]) for r in all_rows))
 
         header = (
-            "| " + f"{'Name'.ljust(w_name)} | {'IP'.ljust(w_ip)} | "
-            f"{'Port'.ljust(w_port)} | {'Notes'.ljust(w_notes)}" + " |"
+            "| "
+            + f"{'Name'.ljust(w_name)} | { 'IP'.ljust(w_ip) } | "
+            + f"{'Port'.ljust(w_port)} | { 'Notes'.ljust(w_notes) } |"
         )
-
         line = "=" * len(header)
+
+        def print_group_row(group_name: str) -> None:
+            inner_width = len(header) - 4
+            text = f"Group: {group_name}"
+            print("| " + text.ljust(inner_width) + " |")
 
         print(line)
         print(header)
         print(line)
 
-        for name, ip, port, notes in hosts:
-            print(
-                "| " + f"{name.ljust(w_name)} | {ip.ljust(w_ip)} | "
-                f"{port.ljust(w_port)} | {notes.ljust(w_notes)}" + " |"
-            )
+        for g in order:
+            print_group_row(g)
+            print(line)
+            for name, ip, port, notes in groups.get(g, []):
+                row = (
+                    "| "
+                    + f"{name.ljust(w_name)} | {ip.ljust(w_ip)} | "
+                    + f"{port.ljust(w_port)} | {notes.ljust(w_notes)} |"
+                )
+                print(row)
+            print(line)
 
-        print(line + "\n")
+        print()
 
     def delete_ssh_config(self) -> None:
         if not os.path.isfile(self.path_ssh_config):
@@ -743,9 +912,12 @@ class ShortSSH:
                 self.key_host = key
             else:
                 self.key_host = None
-        elif item == "Notes":
-            notes = input("Enter Notes: ").strip()
+        elif item == "notes":
+            notes = input("Enter Notes (optional, Enter to skip): ").strip()
             self.notes_host = notes if notes else "-"
+        elif item == "host_group":
+            host_group = input("Enter Host Group (optional, Enter to skip): ").strip()
+            self.host_group = host_group.lower() if host_group else None
 
         return True
 
@@ -817,7 +989,9 @@ class ShortSSH:
             pass
         while not self.set_host("short_name"):
             pass
-        while not self.set_host("Notes"):
+        while not self.set_host("notes"):
+            pass
+        while not self.set_host("host_group"):
             pass
 
         if self.add_forward:
@@ -862,6 +1036,8 @@ class ShortSSH:
             clear_console()
             print(self.logo())
             print("[+] New Host Details:")
+            if self.host_group:
+                print(f"    Group: {self.host_group}")
             print(f"    Port: {self.port_host}")
             print(f"    Username: {self.user_host}")
             print(f"    IP Address: {self.ip_host}")
@@ -881,6 +1057,8 @@ class ShortSSH:
             ch = input("\n[>]: ").strip().lower()
             if ch == "y":
                 with open(self.path_ssh_config, "a") as f:
+                    if self.host_group:
+                        f.write(f"# G: {self.host_group}\n")
                     f.write(
                         f"""Host {self.short_name_host}
         HostName {self.ip_host}
@@ -994,12 +1172,14 @@ class ShortSSH:
                 input("\nPress Enter...")
                 break
 
+    @require_ssh_config
     def backup_restore_menu(self) -> None:
 
         menu = [
             "1. Backup SSH config",
             "2. Restore SSH config",
             "3. Delete SSH backup",
+            "4. Delete SSH config",
             "q. Back",
         ]
 
@@ -1017,6 +1197,8 @@ class ShortSSH:
                 self.menu_restore_ssh()
             elif ch == "3":
                 self.menu_delete_backup()
+            elif ch == "4":
+                self.delete_config_menu()
 
     @require_ssh_config
     @require_ssh_private_key
@@ -1069,11 +1251,13 @@ class ShortSSH:
 
         menu: dict[str, tuple[str, Optional[Callable[[], None]]]] = {
             "1": ("Add new host", self.select_add_menu),
-            "2": ("Find host", self.find_menu),
-            "3": ("Open config in editor", self.open_editor),
-            "4": ("Backup/Restore SSH config", self.backup_restore_menu),
-            "5": ("Manual copy SSH key to host", self.copy_ssh_key_menu),
-            "6": ("Delete SSH config file", self.delete_config_menu),
+            # "2": ("Find host", self.find_menu),
+            "2": ("Open config in editor", self.open_editor),
+            "3": (
+                "Backup/Restore/Delete SSH config",
+                self.backup_restore_menu,
+            ),
+            "4": ("Manual copy SSH key to host", self.copy_ssh_key_menu),
             "q": ("Quit", None),
         }
 
@@ -1114,16 +1298,15 @@ def main():
         app.list_hosts_short_ip()
     elif args[0] in ("--help", "-h"):
         app.doc_help()
-    elif args[0] in ("--forward", "-L"):
-        if len(args) != 4:
-            app.not_valid_argument()
+    elif args[0] in ("--list-group", "-lg"):
+        if len(args) < 2:
+            print("[!] Usage: sssh -lg <group>")
             return
-
-        client_port = int(args[1])
-        local_port = int(args[2])
-        host = args[3]
-
-        app.ssh_port_forward(client_port, local_port, host)
+        group_name = " ".join(args[1:]).strip()
+        if not group_name:
+            print("[!] Usage: sssh -lg <group>")
+            return
+        app.list_hosts_short_ip_group(group_name)
 
     else:
         os.system("ssh " + " ".join(args))
