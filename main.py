@@ -140,6 +140,12 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # check
     # ------------------------------------------------------------------------
+    def version(self) -> None:
+        version = self.version_app.strip()
+        if version.startswith("."):
+            version = version[1:]
+        print(f"{self.name_app} version: {version}")
+
     def get_ssh_private_key_list(self) -> list[str]:
         ssh_dir = os.path.dirname(self.path_ssh_config)
 
@@ -236,6 +242,118 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    @require_ssh_config
+    def sort_ssh_config(self) -> None:
+        import re
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            lines = f.readlines()
+
+        re_group = re.compile(r"^\s*#\s*G\s*:\s*(.+?)\s*$", re.IGNORECASE)
+
+        prelude: list[str] = []
+        i = 0
+        while i < len(lines) and not lines[i].lstrip().lower().startswith(
+            "host ",
+        ):
+            prelude.append(lines[i])
+            i += 1
+
+        groups: dict[str, list[tuple[str, list[str]]]] = {}
+        pending_group: str | None = None
+
+        def host_name_of(block: list[str]) -> str:
+            first = block[0].strip()
+            parts = first.split()
+            return parts[1] if len(parts) > 1 else ""
+
+        while i < len(lines):
+            m = re_group.match(lines[i])
+            if m:
+                name = m.group(1).strip().lower()
+                pending_group = name if name else None
+                i += 1
+                continue
+
+            if not lines[i].lstrip().lower().startswith("host "):
+                i += 1
+                continue
+
+            block: list[str] = []
+            # attach group comment right above the host block (normalized)
+            group = pending_group or "Ungrouped"
+            if pending_group:
+                block.append(f"# G: {pending_group}\n")
+            pending_group = None
+
+            while i < len(lines):
+                line_low = lines[i].lstrip().lower()
+                if re_group.match(lines[i]) or line_low.startswith("host "):
+                    if block and block[-1].lstrip().lower().startswith(
+                        "host ",
+                    ):
+                        pass
+                if re_group.match(lines[i]):
+                    break
+                if (
+                    lines[i].lstrip().lower().startswith("host ")
+                    and block
+                    and any(
+                        ln.lstrip()
+                        .lower()
+                        .startswith(
+                            "host ",
+                        )
+                        for ln in block
+                    )
+                ):
+                    break
+                block.append(lines[i])
+                i += 1
+
+            name = host_name_of(
+                block[1:]
+                if block
+                and block[0]
+                .lstrip()
+                .startswith(
+                    "#",
+                )
+                else block
+            )
+            groups.setdefault(group, []).append((name, block))
+
+        ordered_group_names = sorted(
+            (g for g in groups.keys() if g != "Ungrouped"),
+        )
+        if "Ungrouped" in groups:
+            ordered_group_names.append("Ungrouped")
+
+        out: list[str] = []
+        out.extend(prelude)
+
+        if out and out[-1].strip() != "":
+            out.append("\n")
+
+        for g in ordered_group_names:
+            blocks = groups[g]
+            blocks.sort(key=lambda x: x[0].lower())
+            for _, b in blocks:
+                out.extend(b)
+                if out and out[-1].strip() != "":
+                    out.append("\n")
+
+        with open(self.path_ssh_config, "w", encoding="utf-8") as f:
+            f.writelines(out)
+
+        if not self.is_windows():
+            os.chmod(self.path_ssh_config, 0o600)
+
     def reset_add_host_data(self) -> None:
         self.add_forward = False
 
@@ -249,6 +367,7 @@ class ShortSSH:
 
         rows = [
             ("sssh", "Run interactive menu"),
+            ("sssh --version OR sssh -v", "Show version"),
             ("sssh --list OR sssh -l", "Print hosts as: shortname, ip, port"),
             ("sssh --help OR sssh -h", "Show this help"),
             (
@@ -1185,6 +1304,7 @@ class ShortSSH:
             "2. Restore SSH config",
             "3. Delete SSH backup",
             "4. Delete SSH config",
+            "5. Sort SSH config (by work group)",
             "q. Back",
         ]
 
@@ -1204,6 +1324,8 @@ class ShortSSH:
                 self.menu_delete_backup()
             elif ch == "4":
                 self.delete_config_menu()
+            elif ch == "5":
+                self.sort_ssh_config()
 
     @require_ssh_config
     @require_ssh_private_key
@@ -1269,7 +1391,7 @@ class ShortSSH:
             # "2": ("Find host", self.find_menu),
             "2": ("Open config in editor", self.open_editor),
             "3": (
-                "Backup/Restore/Delete SSH config",
+                "Backup/Restore/Delete/Sort SSH config",
                 self.backup_restore_menu,
             ),
             "4": ("Manual copy SSH key to host", self.copy_ssh_key_menu),
@@ -1313,6 +1435,8 @@ def main():
         app.list_hosts_short_ip()
     elif args[0] in ("--help", "-h"):
         app.doc_help()
+    elif args[0] in ("--version", "-v"):
+        app.version()
     elif args[0] in ("--list-group", "-lg"):
         if len(args) < 2:
             print("[!] Usage: sssh -lg <group>")

@@ -70,3 +70,17 @@ Changed
 - Auto-selection of SSH private key when exactly one key is found in `~/.ssh/`:
   - In **Add host** flow: the only key is automatically assigned to the new host (no selection menu).
   - In **Manual copy SSH key to host** flow: the only key is automatically chosen for `ssh-copy-id` / Windows `ssh` pipeline.
+
+## [v0.1.7] - 2025-02-20
+
+### Added
+- New CLI command `--version` / `-v` to display the current ShortSSH version.
+- New feature to sort `~/.ssh/config` by host groups (`# G: <group>`).
+- New menu action **"Sort SSH config (by work group)"** inside the Backup/Restore menu.
+
+  Sorting behavior:
+  - Hosts are grouped by `# G: <group>` markers.
+  - Groups are sorted alphabetically.
+  - `Ungrouped` hosts are placed at the end of the file.
+  - Hosts inside each group are sorted alphabetically.
+  - Header and global entries (e.g., `Host *`) are preserved.
