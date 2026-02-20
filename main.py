@@ -256,94 +256,67 @@ class ShortSSH:
 
         re_group = re.compile(r"^\s*#\s*G\s*:\s*(.+?)\s*$", re.IGNORECASE)
 
+        def is_host_line(s: str) -> bool:
+            return s.lstrip().lower().startswith("host ")
+
         prelude: list[str] = []
         i = 0
-        while i < len(lines) and not lines[i].lstrip().lower().startswith(
-            "host ",
+        while (
+            i < len(lines)
+            and not is_host_line(lines[i])
+            and not re_group.match(lines[i])
         ):
             prelude.append(lines[i])
             i += 1
 
-        groups: dict[str, list[tuple[str, list[str]]]] = {}
+        entries: list[tuple[str, str, list[str]]] = []
         pending_group: str | None = None
-
-        def host_name_of(block: list[str]) -> str:
-            first = block[0].strip()
-            parts = first.split()
-            return parts[1] if len(parts) > 1 else ""
 
         while i < len(lines):
             m = re_group.match(lines[i])
             if m:
-                name = m.group(1).strip().lower()
-                pending_group = name if name else None
+                g = m.group(1).strip().lower()
+                pending_group = g if g else None
                 i += 1
                 continue
 
-            if not lines[i].lstrip().lower().startswith("host "):
+            if not is_host_line(lines[i]):
                 i += 1
                 continue
 
-            block: list[str] = []
-            # attach group comment right above the host block (normalized)
-            group = pending_group or "Ungrouped"
-            if pending_group:
-                block.append(f"# G: {pending_group}\n")
-            pending_group = None
-
-            while i < len(lines):
-                line_low = lines[i].lstrip().lower()
-                if re_group.match(lines[i]) or line_low.startswith("host "):
-                    if block and block[-1].lstrip().lower().startswith(
-                        "host ",
-                    ):
-                        pass
-                if re_group.match(lines[i]):
-                    break
-                if (
-                    lines[i].lstrip().lower().startswith("host ")
-                    and block
-                    and any(
-                        ln.lstrip()
-                        .lower()
-                        .startswith(
-                            "host ",
-                        )
-                        for ln in block
-                    )
-                ):
-                    break
+            block: list[str] = [lines[i]]
+            i += 1
+            while (
+                i < len(lines)
+                and not is_host_line(lines[i])
+                and not re_group.match(lines[i])
+            ):
                 block.append(lines[i])
                 i += 1
 
-            name = host_name_of(
-                block[1:]
-                if block
-                and block[0]
-                .lstrip()
-                .startswith(
-                    "#",
-                )
-                else block
-            )
-            groups.setdefault(group, []).append((name, block))
+            group = pending_group or "Ungrouped"
+            pending_group = None
 
-        ordered_group_names = sorted(
-            (g for g in groups.keys() if g != "Ungrouped"),
-        )
-        if "Ungrouped" in groups:
-            ordered_group_names.append("Ungrouped")
+            parts = block[0].strip().split()
+            host_name = parts[1] if len(parts) > 1 else ""
+            entries.append((group, host_name.lower(), block))
+
+        groups = sorted({g for g, _, _ in entries if g != "Ungrouped"})
+        if any(g == "Ungrouped" for g, _, _ in entries):
+            groups.append("Ungrouped")
 
         out: list[str] = []
         out.extend(prelude)
-
         if out and out[-1].strip() != "":
             out.append("\n")
 
-        for g in ordered_group_names:
-            blocks = groups[g]
-            blocks.sort(key=lambda x: x[0].lower())
+        for g in groups:
+            blocks = [(hn, b) for (gg, hn, b) in entries if gg == g]
+            blocks.sort(key=lambda x: x[0])
+
             for _, b in blocks:
+                if g != "Ungrouped":
+                    out.append(f"# G: {g}\n")
                 out.extend(b)
                 if out and out[-1].strip() != "":
                     out.append("\n")

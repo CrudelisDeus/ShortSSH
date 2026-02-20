@@ -84,3 +84,16 @@ Changed
   - `Ungrouped` hosts are placed at the end of the file.
   - Hosts inside each group are sorted alphabetically.
   - Header and global entries (e.g., `Host *`) are preserved.
+
+## [v0.1.8] - 2025-02-20
+### Fixed
+
+- Fixed a bug in SSH config sorting that could produce a “dangling” group marker (# G: ...) without a following Host block.
+
+- Fixed incorrect parsing of Host blocks during sorting (block boundaries were detected wrong in some cases), which could lead to duplicated or misplaced # G: lines.
+
+- Sorting now applies # G: <group> only to the next Host ... entry and never inserts extra empty group lines.
+
+- Improved stability on Windows configs (paths like C:\Users\...) and mixed content so sorting doesn’t break formatting.
+
+- Preserved the header/prelude (# ShortSSH Config and other global lines) reliably when sorting.
