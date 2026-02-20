@@ -916,7 +916,9 @@ class ShortSSH:
             notes = input("Enter Notes (optional, Enter to skip): ").strip()
             self.notes_host = notes if notes else "-"
         elif item == "host_group":
-            host_group = input("Enter Host Group (optional, Enter to skip): ").strip()
+            host_group = input(
+                "Enter Host Group (optional, Enter to skip): ",
+            ).strip()
             self.host_group = host_group.lower() if host_group else None
 
         return True
@@ -1004,6 +1006,11 @@ class ShortSSH:
 
         if not private_keys:
             input("\nPress Enter...")
+        elif len(private_keys) == 1:
+            selected_key = private_keys[0]
+            self.key_host = os.path.join(
+                os.path.dirname(self.path_ssh_config), selected_key
+            )
         else:
             while True:
                 clear_console()
@@ -1025,11 +1032,9 @@ class ShortSSH:
                     continue
 
                 selected_key = private_keys[num - 1]
-
                 self.key_host = os.path.join(
                     os.path.dirname(self.path_ssh_config), selected_key
                 )
-
                 break
 
         while True:
@@ -1208,9 +1213,20 @@ class ShortSSH:
             clear_console()
             print(self.logo())
             private_keys: list[str] = self.get_ssh_private_key_list()
+
+            if not private_keys:
+                print("[!] No SSH private keys found")
+                input("\nPress Enter...")
+                return
+
+            if len(private_keys) == 1:
+                self.copy_pubkey_to_host(private_keys[0])
+                return
+
             print("[+] Available SSH Private Keys:\n")
             for idx, key in enumerate(private_keys, start=1):
                 print(f" {idx}. {key}")
+
             print("\nSelect private key number to copy (or 'q' to Back): ")
             ch = input("\n[>]: ").strip().lower()
             if ch == "q":
@@ -1223,7 +1239,6 @@ class ShortSSH:
                 continue
 
             selected_key = private_keys[num - 1]
-
             self.copy_pubkey_to_host(selected_key)
 
     def delete_config_menu(self) -> None:

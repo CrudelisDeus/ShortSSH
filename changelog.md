@@ -63,3 +63,10 @@ Changed
 ### Changed
 - Host listing (`--list` / `-l`) output is now grouped (default group: `Ungrouped`) and prints group headers in the table.
 - Moved "Delete SSH config" action into the "Backup/Restore/Delete SSH config" menu (consolidated config management).
+
+## [v0.1.6] - 2025-02-20
+
+### Added
+- Auto-selection of SSH private key when exactly one key is found in `~/.ssh/`:
+  - In **Add host** flow: the only key is automatically assigned to the new host (no selection menu).
+  - In **Manual copy SSH key to host** flow: the only key is automatically chosen for `ssh-copy-id` / Windows `ssh` pipeline.
