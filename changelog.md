@@ -133,3 +133,14 @@ Changed
 - Update process no longer requires manual reinstall commands.
 
 
+## [v0.1.11] - 2026-02-23
+
+### Fixed
+- Fixed Windows self-update failure caused by attempting to overwrite a running `shortssh.exe`.
+- Installer now downloads updates to a temporary file and safely replaces the executable after terminating the running process.
+- Fixed update crashes when ShortSSH attempted to update itself from an active session.
+- Improved overall reliability of the automatic update mechanism on Windows systems.
+
+### Changed
+- Improved self-update workflow to ensure safe executable replacement.
+- Update process now exits ShortSSH automatically before applying updates.

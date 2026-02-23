@@ -5,35 +5,50 @@ REM === env ===
 set "URL=https://shortssh.deus-soft.org/shortssh.exe"
 set "INSTALL_DIR=%LOCALAPPDATA%\Programs\ShortSSH"
 set "EXE=%INSTALL_DIR%\shortssh.exe"
+set "NEW=%INSTALL_DIR%\shortssh.new.exe"
+set "BAK=%INSTALL_DIR%\shortssh.bak.exe"
 set "CMD=%INSTALL_DIR%\sssh.cmd"
 
 echo [*] Installing ShortSSH...
 echo.
 
-REM === create dir ===
 if not exist "%INSTALL_DIR%" (
     mkdir "%INSTALL_DIR%"
 )
 
-REM === download exe ===
 echo [*] Downloading shortssh.exe
 powershell -NoProfile -Command ^
- "Invoke-WebRequest -Uri '%URL%' -OutFile '%EXE%'"
+ "Invoke-WebRequest -Uri '%URL%' -OutFile '%NEW%'"
 
-if not exist "%EXE%" (
+if not exist "%NEW%" (
     echo [X] Download failed
     pause
     exit /b 1
 )
 
-REM === create command sssh ===
+taskkill /F /IM shortssh.exe >nul 2>&1
+
+if exist "%EXE%" (
+    del "%BAK%" >nul 2>&1
+    move /Y "%EXE%" "%BAK%" >nul
+)
+
+move /Y "%NEW%" "%EXE%" >nul
+if not exist "%EXE%" (
+    echo [X] Replace failed (file may be locked)
+    echo     Close ShortSSH and run installer again.
+    pause
+    exit /b 1
+)
+
+del "%BAK%" >nul 2>&1
+
 echo [*] Creating command sssh
 (
 echo @echo off
 echo "%EXE%" %%*
 ) > "%CMD%"
 
-REM === added PATH (user) ===
 echo [*] Adding to PATH
 set "USER_PATH="
 for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path','User')"`) do set "USER_PATH=%%A"
