@@ -131,3 +131,5 @@ Changed
 ### Changed
 - Installation path is now standardized to support automatic updates.
 - Update process no longer requires manual reinstall commands.
+
+
