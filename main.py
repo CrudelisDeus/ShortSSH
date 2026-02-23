@@ -3,11 +3,19 @@
 import os
 import sys
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TypedDict
 
 
 def clear_console() -> None:
     os.system("cls" if os.name == "nt" else "clear")
+
+
+class HostCfg(TypedDict, total=False):
+    hostname: str
+    user: str
+    port: str
+    identityfile: str
+    localforward: list[str]
 
 
 def require_ssh_private_key(
@@ -242,6 +250,144 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+
+    @require_ssh_config
+    def output_command_for_host(self, host_name: str) -> None:
+        print(self.logo())
+
+        host_name = host_name.strip()
+        if not host_name:
+            print("[!] Host name is empty. Example: sssh -c Test")
+            return
+
+        cfg = self._read_ssh_host_config(host_name)
+        if cfg is None:
+            print(f"[!] Host '{host_name}' not found in SSH config")
+            return
+
+        print("[>] Full command for host:\n")
+
+        ssh_parts: list[str] = ["ssh"]
+
+        identity = cfg.get("identityfile")
+        if identity:
+            ssh_parts += ["-i", identity]
+
+        port = cfg.get("port") or "22"
+        ssh_e_port = port
+        ssh_parts += ["-p", port]
+
+        forwards = cfg.get("localforward", [])
+        forward_args: list[str] = []
+        for fwd in forwards:
+            fwd = fwd.strip()
+            if not fwd:
+                continue
+            parts = fwd.split(None, 1)
+            if len(parts) == 2:
+                local, remote = parts
+                forward_args += ["-L", f"{local}:{remote}"]
+            else:
+                forward_args += ["-L", fwd]
+
+        user = cfg.get("user")
+        hostname = cfg.get("hostname")
+        target = host_name
+
+        if hostname:
+            target = f"{user}@{hostname}" if user else hostname
+        elif user:
+            target = f"{user}@{host_name}"
+
+        ssh_cmd = " ".join(ssh_parts + [target])
+        print(ssh_cmd)
+
+        if forward_args:
+            ssh_fwd_cmd = " ".join(ssh_parts + forward_args + [target])
+            print(ssh_fwd_cmd)
+
+        ssh_e: list[str] = ["ssh"]
+        short_e: list[str] = ["ssh"]
+        if identity:
+            ssh_e += ["-i", identity]
+        short_e += ["-p", ssh_e_port]
+        ssh_e += ["-p", ssh_e_port]
+        ssh_e_str = " ".join(ssh_e)
+        short_e_str = " ".join(short_e)
+
+        rsync_cmd = f'rsync -rvu --progress ./* -e "{ssh_e_str}" {target}:~/'
+        print(rsync_cmd)
+
+        scp_parts: list[str] = ["scp", "-r"]
+        if identity:
+            scp_parts += ["-i", identity]
+        scp_parts += ["-P", ssh_e_port]
+        scp_cmd = " ".join(scp_parts + ["./*", f"{target}:~/"])
+        print(scp_cmd)
+
+        print("\n[>] Short command for host:\n")
+
+        short_cmd = f"ssh -p {ssh_e_port} {target}"
+        print(short_cmd)
+        short_rsync_cmd = (
+            f"rsync -rvu --progress ./* " f'-e "{short_e_str}" ' f"{target}:~/"
+        )
+        print(short_rsync_cmd)
+        short_scp_cmd = f"scp -r -P {ssh_e_port} ./* {target}:~/"
+        print(short_scp_cmd)
+
+    def _read_ssh_host_config(self, host_name: str) -> HostCfg | None:
+        host_name_l = host_name.lower()
+
+        current: HostCfg | None = None
+        in_target = False
+
+        with open(
+            self.path_ssh_config,
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                low = line.lower()
+
+                if low.startswith("host "):
+                    if in_target:
+                        return current
+
+                    parts = line.split()
+                    names = [p.lower() for p in parts[1:]]
+                    in_target = host_name_l in names
+                    if in_target:
+                        current = {"localforward": []}
+                    continue
+
+                if not in_target or current is None:
+                    continue
+
+                key, *rest = line.split(None, 1)
+                if not rest:
+                    continue
+                val = rest[0].strip()
+
+                k = key.lower()
+                if k == "hostname":
+                    current["hostname"] = val
+                elif k == "user":
+                    current["user"] = val
+                elif k == "port":
+                    current["port"] = val
+                elif k == "identityfile":
+                    current["identityfile"] = os.path.expanduser(val)
+                elif k == "localforward":
+                    current["localforward"].append(val)
+
+        return current if in_target else None
+
     @require_ssh_config
     def sort_ssh_config(self) -> None:
         import re
@@ -347,6 +493,7 @@ class ShortSSH:
                 "sssh --list-group OR -lg <group>",
                 "List hosts in group with IP and Port",
             ),
+            ("sssh --command OR -c <host>", "List command for host"),
             ("sssh <ssh args>", "Run ssh with provided arguments"),
         ]
 
@@ -1419,6 +1566,15 @@ def main():
             print("[!] Usage: sssh -lg <group>")
             return
         app.list_hosts_short_ip_group(group_name)
+    elif args[0] in ("--command", "-c"):
+        if len(args) < 2:
+            print("[!] Usage: sssh -c <host>")
+            return
+        group_name = " ".join(args[1:]).strip()
+        if not group_name:
+            print("[!] Usage: sssh -c <host>")
+            return
+        app.output_command_for_host(group_name)
 
     else:
         os.system("ssh " + " ".join(args))

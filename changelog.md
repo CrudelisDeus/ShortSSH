@@ -97,3 +97,23 @@ Changed
 - Improved stability on Windows configs (paths like C:\Users\...) and mixed content so sorting doesn’t break formatting.
 
 - Preserved the header/prelude (# ShortSSH Config and other global lines) reliably when sorting.
+
+## [v0.1.9] - 2025-02-23
+
+### Added
+- New CLI command `--command` / `-c <host>` to print ready-to-copy connection commands for a host.
+- Command output now includes:
+  - Full `ssh` command (with `-i` IdentityFile when present).
+  - Optional `ssh` command with all `LocalForward` rules expanded into `-L` args.
+  - `rsync` upload command using the same SSH options via `-e "ssh ..."` (with progress).
+  - `scp` upload command as an alternative to rsync.
+- Added “short command” section in `--command` output:
+  - Short `ssh` command.
+  - Short `rsync` command.
+  - Short `scp` command.
+
+### Changed
+- Improved SSH host config parsing:
+  - `IdentityFile` now expands `~` to absolute path (`os.path.expanduser`).
+  - `LocalForward` values are collected into a list and reused for command generation.
+- Better user-facing messages and examples for invalid or empty host arguments.
