@@ -327,7 +327,7 @@ class ShortSSH:
 
                 subprocess.run(["bash", "-c", unix_cmd])
 
-        sys.exit(0)
+            sys.exit(0)
 
     @require_ssh_config
     def output_command_for_host(self, host_name: str) -> None:
