@@ -144,3 +144,19 @@ Changed
 ### Changed
 - Improved self-update workflow to ensure safe executable replacement.
 - Update process now exits ShortSSH automatically before applying updates.
+
+## [v0.1.12] - 2026-02-23
+
+### Fixed
+- Fixed incorrect SSH config path detection on Windows when the user profile folder contains non-ASCII characters (e.g., `C:\Users\К`):
+  - `~/.ssh/config` could resolve to `C:\Users\K\.ssh\config`, causing missing key/config errors.
+  - ShortSSH now prefers `%USERPROFILE%` as the home directory on Windows to reliably locate `~\.ssh\...`.
+- Fixed broken `IdentityFile` paths written into `~/.ssh/config` on Windows (mixed slashes, malformed `C:\Users\ ...` paths).
+- Fixed SSH key lookup failures caused by absolute path mismatches between `USERNAME` and the real profile directory name.
+
+### Changed
+- `IdentityFile` is now written in a cross-platform form using `~/.ssh/<key>` instead of an absolute Windows path:
+  - Avoids hardcoding `C:\Users\...`
+  - Keeps configs portable between machines and user profiles
+  - Lets OpenSSH resolve `~` correctly on Windows and Linux
+- When reading host config on Windows, `IdentityFile` is kept as-is (no forced `expanduser`) to preserve `~` in `--command` output.

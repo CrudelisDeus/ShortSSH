@@ -117,7 +117,14 @@ class ShortSSH:
         self.local_port_forward: int | None = None
         self.host_group: str | None = None
 
-        self.path_ssh_config = os.path.expanduser("~/.ssh/config")
+        # ---- FIX 1: robust HOME on Windows (prefer USERPROFILE) ----
+        if os.name == "nt":
+            home = os.environ.get("USERPROFILE") or os.path.expanduser("~")
+        else:
+            home = os.path.expanduser("~")
+        self.path_ssh_config = os.path.join(home, ".ssh", "config")
+        # -----------------------------------------------------------
+
         self.program_dir = os.path.dirname(os.path.abspath(__file__))
         self.backup_dir = os.path.join(self.program_dir, "backups")
 
@@ -460,7 +467,10 @@ class ShortSSH:
                 elif k == "port":
                     current["port"] = val
                 elif k == "identityfile":
-                    current["identityfile"] = os.path.expanduser(val)
+                    if self.is_windows():
+                        current["identityfile"] = val
+                    else:
+                        current["identityfile"] = os.path.expanduser(val)
                 elif k == "localforward":
                     current["localforward"].append(val)
 
@@ -1320,9 +1330,7 @@ class ShortSSH:
             input("\nPress Enter...")
         elif len(private_keys) == 1:
             selected_key = private_keys[0]
-            self.key_host = os.path.join(
-                os.path.dirname(self.path_ssh_config), selected_key
-            )
+            self.key_host = f"~/.ssh/{selected_key}"
         else:
             while True:
                 clear_console()
@@ -1344,9 +1352,7 @@ class ShortSSH:
                     continue
 
                 selected_key = private_keys[num - 1]
-                self.key_host = os.path.join(
-                    os.path.dirname(self.path_ssh_config), selected_key
-                )
+                self.key_host = f"~/.ssh/{selected_key}"
                 break
 
         while True:
