@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import os
+import re
+import subprocess
 import sys
 from functools import wraps
 from typing import Any, Callable, Optional, TypedDict
@@ -148,6 +150,44 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # check
     # ------------------------------------------------------------------------
+    def check_updates(self) -> bool:
+        if self.version_app.startswith(".dev"):
+            return False
+
+        from urllib.request import Request, urlopen
+
+        req = Request(
+            "https://shortssh.deus-soft.org/actual_version",
+            headers={"User-Agent": "ShortSSH"},
+        )
+
+        try:
+            remote = urlopen(req, timeout=3).read().decode().strip()
+        except Exception:
+            return False
+
+        remote_internal = "." + remote.lstrip("v")
+        remote_display = "v." + remote.lstrip("v")
+
+        test_version = self.version_app
+
+        print(test_version)
+        print(remote_internal)
+
+        if tuple(map(int, remote_internal.lstrip(".").split("."))) > tuple(
+            map(int, test_version.lstrip(".").split("."))
+        ):
+            clear_console()
+            print(self.logo())
+            print(f"[!] New version available {remote_display}")
+            print("[*] Do you want to update? (y/n)")
+            ch = input("\n[>]: ").strip().lower()
+            if ch == "y":
+                return True
+            else:
+                return False
+        return False
+
     def version(self) -> None:
         version = self.version_app.strip()
         if version.startswith("."):
@@ -250,6 +290,42 @@ class ShortSSH:
     # ------------------------------------------------------------------------
     # functionality
     # ------------------------------------------------------------------------
+    def run_update(self) -> None:
+        if self.check_updates():
+            clear_console()
+            print(self.logo())
+
+            print("Updating ShortSSH...")
+
+            if os.name == "nt":
+                ps_cmd = (
+                    "Invoke-WebRequest "
+                    '"https://raw.githubusercontent.com/CrudelisDeus/'
+                    'ShortSSH/main/install.bat" '
+                    "-OutFile "
+                    '"$env:USERPROFILE\\Downloads\\ShortSSH-install.bat"; '
+                    'cd "$env:USERPROFILE\\Downloads"; '
+                    ".\\ShortSSH-install.bat"
+                )
+
+                subprocess.run(
+                    [
+                        "powershell",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command",
+                        ps_cmd,
+                    ]
+                )
+            else:
+                unix_cmd = (
+                    "sudo curl -L https://shortssh.deus-soft.org/shortssh.py "
+                    "-o /usr/local/bin/sssh && "
+                    "sudo chmod +x /usr/local/bin/sssh && "
+                    "sudo sed -i 's/\\r$//' /usr/local/bin/sssh"
+                )
+
+                subprocess.run(["bash", "-c", unix_cmd])
 
     @require_ssh_config
     def output_command_for_host(self, host_name: str) -> None:
@@ -390,7 +466,6 @@ class ShortSSH:
 
     @require_ssh_config
     def sort_ssh_config(self) -> None:
-        import re
 
         with open(
             self.path_ssh_config,
@@ -514,8 +589,6 @@ class ShortSSH:
             print(f"[!] SSH config not found: {self.path_ssh_config}")
             return
 
-        import re
-
         groups: dict[str, list[tuple[str, str, str, str]]] = {}
 
         cur_host: str | None = None
@@ -638,8 +711,6 @@ class ShortSSH:
         if not os.path.isfile(self.path_ssh_config):
             print(f"[!] SSH config not found: {self.path_ssh_config}")
             return
-
-        import re
 
         groups: dict[str, list[tuple[str, str, str, str]]] = {}
 
@@ -1538,6 +1609,7 @@ class ShortSSH:
             action()
 
     def main(self) -> None:
+        self.run_update()
         self.main_menu()
         clear_console()
 

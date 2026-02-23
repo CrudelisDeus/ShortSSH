@@ -117,3 +117,17 @@ Changed
   - `IdentityFile` now expands `~` to absolute path (`os.path.expanduser`).
   - `LocalForward` values are collected into a list and reused for command generation.
 - Better user-facing messages and examples for invalid or empty host arguments.
+
+## [v0.1.10] - 2026-02-23
+
+### Added
+- Automatic self-update system:
+  - ShortSSH now checks for a newer version on startup.
+  - User confirmation prompt before performing update.
+- Cross-platform auto-update support:
+  - Windows: downloads and executes installer via PowerShell (ExecutionPolicy Bypass).
+  - Linux: automatically reinstalls ShortSSH into `/usr/local/bin/sssh`.
+
+### Changed
+- Installation path is now standardized to support automatic updates.
+- Update process no longer requires manual reinstall commands.

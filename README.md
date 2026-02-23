@@ -146,6 +146,10 @@
 </div>
 
 `powershell | Update / Install`
+> **Important:** Do not change install path.
+> Auto-update expects installer in `%USERPROFILE%\Downloads`.
+> Installing elsewhere may break automatic updates.
+
 ```bash
 Invoke-WebRequest `
 "https://raw.githubusercontent.com/CrudelisDeus/ShortSSH/main/install.bat" `
@@ -163,6 +167,10 @@ sssh
 ```
 
 <h2>Linux download</h2>
+
+> **Important:** Do not change install path.
+> Auto-update overwrites `/usr/local/bin/sssh`.
+> Installing elsewhere may break automatic updates.
 
 ```bash
 sudo curl -L https://shortssh.deus-soft.org/shortssh.py -o /usr/local/bin/sssh
