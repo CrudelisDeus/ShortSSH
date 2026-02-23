@@ -1,24 +1,26 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
+REM === env ===
 set "URL=https://shortssh.deus-soft.org/shortssh.exe"
 set "INSTALL_DIR=%LOCALAPPDATA%\Programs\ShortSSH"
 set "EXE=%INSTALL_DIR%\shortssh.exe"
 set "NEW=%INSTALL_DIR%\shortssh.new.exe"
 set "BAK=%INSTALL_DIR%\shortssh.bak.exe"
 set "CMD=%INSTALL_DIR%\sssh.cmd"
-set "UPD=%INSTALL_DIR%\sssh_updater.bat"
 
 echo [*] Installing ShortSSH...
 echo.
 
+REM === create dir ===
 if not exist "%INSTALL_DIR%" (
-    mkdir "%INSTALL_DIR%"
+    mkdir "%INSTALL_DIR%" >nul 2>&1
 )
 
+REM === download to NEW (never overwrite running exe) ===
 echo [*] Downloading shortssh.exe
 powershell -NoProfile -Command ^
- "try { Invoke-WebRequest -Uri '%URL%' -OutFile '%NEW%' -UseBasicParsing; exit 0 } catch { exit 1 }"
+ "try { Invoke-WebRequest -Uri '%URL%' -OutFile '%NEW%' -UseBasicParsing } catch { exit 1 }"
 
 if not exist "%NEW%" (
     echo [X] Download failed
@@ -26,49 +28,67 @@ if not exist "%NEW%" (
     exit /b 1
 )
 
+REM === try to stop running ShortSSH ===
+taskkill /F /IM shortssh.exe >nul 2>&1
+
+REM === wait until process is really gone (up to ~10s) ===
+for /L %%i in (1,1,20) do (
+    tasklist /FI "IMAGENAME eq shortssh.exe" 2>nul | find /I "shortssh.exe" >nul
+    if errorlevel 1 goto :process_gone
+    timeout /t 1 /nobreak >nul
+)
+:process_gone
+
+REM === replace with retries (Defender / file locks) ===
+for /L %%i in (1,1,20) do (
+    if exist "%EXE%" (
+        del "%BAK%" >nul 2>&1
+        move /Y "%EXE%" "%BAK%" >nul 2>&1
+    )
+
+    move /Y "%NEW%" "%EXE%" >nul 2>&1
+
+    if exist "%EXE%" (
+        del "%BAK%" >nul 2>&1
+        goto :replaced_ok
+    )
+
+    REM rollback if needed
+    if exist "%BAK%" move /Y "%BAK%" "%EXE%" >nul 2>&1
+
+    timeout /t 1 /nobreak >nul
+)
+
+echo [X] Replace failed (file may be locked)
+echo     Close ShortSSH (and wait 2-3 sec) and run installer again.
+pause
+exit /b 1
+
+:replaced_ok
+
+REM === create command sssh ===
+echo [*] Creating command sssh
 (
 echo @echo off
-echo setlocal EnableExtensions
-echo set "INSTALL_DIR=%INSTALL_DIR%"
-echo set "EXE=%EXE%"
-echo set "NEW=%NEW%"
-echo set "BAK=%BAK%"
-echo set "CMD=%CMD%"
-echo.
-echo REM give parent shells time to release locks
-echo ping 127.0.0.1 -n 2 ^>nul
-echo.
-echo REM try multiple times to kill and replace
-echo for %%%%I in ^(1 2 3 4 5 6 7 8 9 10^) do ^(
-echo   taskkill /F /IM shortssh.exe ^>nul 2^>^&1
-echo   ping 127.0.0.1 -n 2 ^>nul
-echo.
-echo   if exist "%%EXE%%" ^(
-echo     del "%%BAK%%" ^>nul 2^>^&1
-echo     move /Y "%%EXE%%" "%%BAK%%" ^>nul 2^>^&1
-echo   ^)
-echo.
-echo   move /Y "%%NEW%%" "%%EXE%%" ^>nul 2^>^&1
-echo   if exist "%%EXE%%" goto :ok
-echo ^)
-echo.
-echo echo [X] Replace failed (file is locked^)
-echo echo     Close ShortSSH and run installer again.
-echo pause
-echo exit /b 1
-echo.
-echo :ok
-echo del "%%BAK%%" ^>nul 2^>^&1
-echo.
-echo echo [*] Creating command sssh
-echo ^(
-echo echo @echo off
-echo echo "%%EXE%%" %%%%*
-echo ^) ^> "%%CMD%%"
-echo.
-echo echo [+] Updated successfully
-echo exit /b 0
-) > "%UPD%"
+echo "%EXE%" %%*
+) > "%CMD%"
 
-start "" /b cmd /c ""%UPD%""
-exit /b 0
+REM === add PATH (user) ===
+echo [*] Adding to PATH
+set "USER_PATH="
+for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('Path','User')"`) do set "USER_PATH=%%A"
+
+echo %USER_PATH% | find /I "%INSTALL_DIR%" >nul
+if errorlevel 1 (
+    powershell -NoProfile -Command ^
+     "[Environment]::SetEnvironmentVariable('Path','%USER_PATH%;%INSTALL_DIR%','User')"
+    echo [+] PATH updated (restart terminal)
+) else (
+    echo [*] PATH already contains ShortSSH
+)
+
+echo.
+echo [*] Done!
+echo Use command: sssh
+echo Restart terminal if command is not found.
+pause
