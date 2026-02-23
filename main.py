@@ -151,7 +151,7 @@ class ShortSSH:
     # check
     # ------------------------------------------------------------------------
     def check_updates(self) -> bool:
-        if self.version_app.startswith(".dev"):
+        if self.version_app == ".dev":
             return False
 
         from urllib.request import Request, urlopen
