@@ -37,12 +37,13 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF_NAME}"
-            TAG="${TAG#v}"
-            VERSION=".${TAG}"
+            PLAIN_TAG="${TAG#v}"
+            VERSION=".${PLAIN_TAG}"
 
             echo "exe_name=shortssh.exe" >> $GITHUB_OUTPUT
             echo "py_name=shortssh.py" >> $GITHUB_OUTPUT
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "version_tag=${TAG}" >> $GITHUB_OUTPUT
           else
             SHORT_SHA="${GITHUB_SHA::7}"
             VERSION=".dev-${SHORT_SHA}"
@@ -50,6 +51,7 @@ jobs:
             echo "exe_name=dev-shortssh.exe" >> $GITHUB_OUTPUT
             echo "py_name=dev-shortssh.py" >> $GITHUB_OUTPUT
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "version_tag=" >> $GITHUB_OUTPUT
           fi
 
       - name: Patch version in main.py
@@ -80,7 +82,16 @@ jobs:
           mkdir -p dist
           cp -f main.py "dist/${{ steps.target.outputs.py_name }}"
 
-      - name: Upload to Cloudflare R2 (exe + py)
+      - name: Create actual_version file (tag only)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          mkdir -p dist
+          echo "${{ steps.target.outputs.version_tag }}" > dist/actual_version
+          echo "actual_version:"
+          cat dist/actual_version
+
+      - name: Upload to Cloudflare R2 (exe + py + actual_version)
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ vars.R2_ACCESS_KEY_ID }}
@@ -102,10 +113,19 @@ jobs:
             --content-type text/x-python \
             --cache-control "no-cache, no-store, must-revalidate"
 
-      - name: Upload artifacts (GitHub) exe + py
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            aws s3 cp dist/actual_version \
+              "s3://${R2_BUCKET}/actual_version" \
+              --endpoint-url "${R2_ENDPOINT}" \
+              --content-type text/plain \
+              --cache-control "no-cache, no-store, must-revalidate"
+          fi
+
+      - name: Upload artifacts (GitHub) exe + py + actual_version
         uses: actions/upload-artifact@v4
         with:
           name: shortssh-${{ steps.target.outputs.version }}
           path: |
             dist/shortssh.exe
             dist/${{ steps.target.outputs.py_name }}
+            dist/actual_version
