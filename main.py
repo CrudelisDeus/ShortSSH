@@ -20,6 +20,12 @@ class HostCfg(TypedDict, total=False):
     localforward: list[str]
 
 
+class Cancelled(Exception):
+    """User cancelled current action (e.g., pressed 'q')."""
+
+    pass
+
+
 def require_ssh_private_key(
     func: Callable[..., Any],
 ) -> Callable[..., Optional[Any]]:
@@ -1176,14 +1182,19 @@ class ShortSSH:
 
     def set_host(self, item: str) -> bool:
         if item == "ip":
-            ip = input("Enter IP Address: ")
+            ip = input("Enter IP Address: ").strip()
+            if ip.lower() == "q":
+                raise Cancelled()
             if self.check_host_ip(ip):
                 self.ip_host = ip
             else:
                 print("\n[!] Invalid IP address format\n")
                 return False
+
         elif item == "port":
-            port = input("Enter Port: ")
+            port = input("Enter Port: ").strip()
+            if port.lower() == "q":
+                raise Cancelled()
             if not port:
                 port = "22"
             if self.check_host_port(port):
@@ -1191,22 +1202,31 @@ class ShortSSH:
             else:
                 print("\n[!] Invalid Port format\n")
                 return False
+
         elif item == "user":
-            user = input("Enter Username: ")
+            user = input("Enter Username: ").strip()
+            if user.lower() == "q":
+                raise Cancelled()
             if not user:
                 import getpass
 
                 user = getpass.getuser()
             self.user_host = user
+
         elif item == "forward_client_port":
-            client_port = input("Enter Client Port: ")
+            client_port = input("Enter Client Port: ").strip()
+            if client_port.lower() == "q":
+                raise Cancelled()
             if self.check_host_port(client_port):
                 self.client_port_forward = int(client_port)
             else:
                 print("\n[!] Invalid Port format\n")
                 return False
+
         elif item == "forward_local_port":
-            local_port = input("Enter Local Port: ")
+            local_port = input("Enter Local Port: ").strip()
+            if local_port.lower() == "q":
+                raise Cancelled()
             if self.check_host_port(local_port):
                 self.local_port_forward = int(local_port)
             else:
@@ -1215,6 +1235,8 @@ class ShortSSH:
 
         elif item == "short_name":
             short_name = input("Enter Short Name: ").strip()
+            if short_name.lower() == "q":
+                raise Cancelled()
 
             if not self.check_host_short_name(short_name):
                 print("\n[!] Invalid Short Name format\n")
@@ -1224,8 +1246,11 @@ class ShortSSH:
                 print("\n[!] Short Name already exists in SSH config\n")
                 return False
             self.short_name_host = short_name
+
         elif item == "key":
             key = input("Enter Path to Key File (or leave empty): ").strip()
+            if key.lower() == "q":
+                raise Cancelled()
             if key:
                 key = os.path.expanduser(key)
                 if not os.path.isfile(key):
@@ -1234,13 +1259,19 @@ class ShortSSH:
                 self.key_host = key
             else:
                 self.key_host = None
+
         elif item == "notes":
             notes = input("Enter Notes (optional, Enter to skip): ").strip()
+            if notes.lower() == "q":
+                raise Cancelled()
             self.notes_host = notes if notes else "-"
+
         elif item == "host_group":
             host_group = input(
                 "Enter Host Group (optional, Enter to skip): ",
             ).strip()
+            if host_group.lower() == "q":
+                raise Cancelled()
             self.host_group = host_group.lower() if host_group else None
 
         return True
@@ -1304,25 +1335,36 @@ class ShortSSH:
     def add_menu(self) -> None:
         clear_console()
         print(self.logo())
+        print("[*] Type 'q' at any prompt to cancel and return to menu.\n")
 
-        while not self.set_host("port"):
-            pass
-        while not self.set_host("user"):
-            pass
-        while not self.set_host("ip"):
-            pass
-        while not self.set_host("short_name"):
-            pass
-        while not self.set_host("notes"):
-            pass
-        while not self.set_host("host_group"):
-            pass
+        try:
+            while not self.set_host("port"):
+                pass
 
-        if self.add_forward:
-            while not self.set_host("forward_client_port"):
+            while not self.set_host("user"):
                 pass
-            while not self.set_host("forward_local_port"):
+
+            while not self.set_host("ip"):
                 pass
+
+            while not self.set_host("short_name"):
+                pass
+
+            while not self.set_host("notes"):
+                pass
+
+            while not self.set_host("host_group"):
+                pass
+
+            if self.add_forward:
+                while not self.set_host("forward_client_port"):
+                    pass
+
+                while not self.set_host("forward_local_port"):
+                    pass
+
+        except Cancelled:
+            return
 
         private_keys: list[str] = self.get_ssh_private_key_list()
 

@@ -160,3 +160,14 @@ Changed
   - Keeps configs portable between machines and user profiles
   - Lets OpenSSH resolve `~` correctly on Windows and Linux
 - When reading host config on Windows, `IdentityFile` is kept as-is (no forced `expanduser`) to preserve `~` in `--command` output.
+
+## [v0.1.13] - 2026-02-24
+
+### Added
+- Added global **interactive cancel support** during host creation:
+  - Users can now type `q` at any input prompt in the **Add host** flow to immediately abort the operation.
+  - Cancellation safely returns to the previous menu without creating or modifying SSH config entries.
+
+### Changed
+- Improved interactive UX in the **Add host** workflow by allowing fast exit without completing all prompts.
+- Input handling logic was refactored to support clean interruption of multi-step operations.
